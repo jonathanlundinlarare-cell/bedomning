@@ -1806,9 +1806,11 @@ function renderGradeTab(cls,sk){
                  (hist&&!note?`<span class="dot dot-hist"></span>`:'');
 
       // Chain badge: shows original → latest if omprov done
+      // origForChain: hämta ursprungsbetyget från första omprovets prevGrade
+      const origForChain=(omprovResults.length>0&&omprovResults[0].prevGrade)||g;
       const chainBadge=hasOmprov?
         `<div class="omprov-chain" onclick="event.stopPropagation();openOmprovDialog('${s.id}','${sk}',${yr},${ai},${mi},'${esc2(s.name)}','${esc2(areas[ai].name)}','${esc2(areas[ai].moments[mi])}')" title="Visa omprovhistorik">
-           <span class="omprov-chain-orig">${gradeLabel(g)}</span>
+           <span class="omprov-chain-orig">${gradeLabel(origForChain)}</span>
            <span class="omprov-chain-arrow">→</span>
            <span>${gradeLabel(latestGrade)}</span>
            ${omprovResults.length>1?`<span style="opacity:.6">×${omprovResults.length}</span>`:''}
@@ -2187,8 +2189,7 @@ function printStudentView(){
   const name=document.getElementById('sv-name').textContent;
   const meta=document.getElementById('sv-meta').textContent;
   const body=document.getElementById('sv-body').innerHTML;
-  const printWin=window.open('','_blank');
-  printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${name}</title>
+  const _epHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${name}</title>
   <style>
   *{box-sizing:border-box}
   body{font-family:Arial,sans-serif;font-size:9pt;color:#000;margin:0;padding:0}
@@ -2225,7 +2226,13 @@ function printStudentView(){
     // yr6 colour fix
     document.querySelectorAll('.sv-yr6').forEach(el=>el.style.background='#27ae60');
     window.onload=()=>{window.print();window.close();}
-  <\/script></body></html>`);
+  <\/script></body></html>`;
+  if(isElectron&&window.electronAPI?.openPrintWindow){
+    window.electronAPI.openPrintWindow(_epHtml,'Utskrift');return;
+  }
+  const printWin=window.open('','_blank');
+  if(!printWin){showToast('Popup blockerad');return;}
+  printWin.document.write(_epHtml);
   printWin.document.close();
 }
 
@@ -2254,8 +2261,7 @@ function printClassPDF(sk,yr){
     rows+=`<tr style="border-bottom:1px solid #eee">${cells}</tr>`;
   }
 
-  const printWin=window.open('','_blank');
-  printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  const _epHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>${c.name} – ${subj.name} – ÅK ${yr}</title>
   <style>
   *{box-sizing:border-box}
@@ -2275,7 +2281,13 @@ function printClassPDF(sk,yr){
   <h3>Skrivet ut ${todayStr()} · ${c.students.length} elever · 🔄 = Omprov</h3>
   <table><thead><tr>${headerCells}</tr><tr>${momentCells}</tr></thead><tbody>${rows}</tbody></table>
   <script>window.onload=()=>{window.print();window.close();}<\/script>
-  </body></html>`);
+  </body></html>`;
+  if(isElectron&&window.electronAPI?.openPrintWindow){
+    window.electronAPI.openPrintWindow(_epHtml,'Utskrift');return;
+  }
+  const printWin=window.open('','_blank');
+  if(!printWin){showToast('Popup blockerad');return;}
+  printWin.document.write(_epHtml);
   printWin.document.close();
 }
 
@@ -2447,8 +2459,7 @@ function printOversiktPDF(yr){
     rows+=`<tr style="border-bottom:1px solid #eee">${cells}</tr>`;
   }
 
-  const printWin=window.open('','_blank');
-  printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  const _epHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>${c.name} – ÅK ${yr} – Översikt</title>
   <style>
   *{box-sizing:border-box}
@@ -2466,7 +2477,13 @@ function printOversiktPDF(yr){
   <h2>${esc(c.name)}${c.year?' – '+esc(c.year):''} &nbsp;·&nbsp; Betygsöversikt – Årskurs ${yr}</h2>
   <h3>Skrivet ut ${todayStr()} · Frånvarogräns ogiltig: ≥${db.absenceLimit||15}h (markeras rött)</h3>
   <table><thead><tr>${hdr}</tr><tr>${termRow}</tr></thead><tbody>${rows}</tbody></table>
-  <script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
+  <script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`;
+  if(isElectron&&window.electronAPI?.openPrintWindow){
+    window.electronAPI.openPrintWindow(_epHtml,'Utskrift');return;
+  }
+  const printWin=window.open('','_blank');
+  if(!printWin){showToast('Popup blockerad');return;}
+  printWin.document.write(_epHtml);
   printWin.document.close();
 }
 
@@ -2744,12 +2761,28 @@ function renderStatPrint(){
 function printStatsReport(){showStatTab('print');}
 
 function openPrintWin(title,body,landscape=false){
+  // I Electron: skicka HTML till main.js som öppnar ett riktigt utskriftsfönster
+  if(isElectron&&window.electronAPI?.openPrintWindow){
+    const orient=landscape?'landscape':'portrait';
+    const margH=landscape?'8mm':'12mm';
+    const margW=landscape?'8mm':'15mm';
+    const fullHtml=buildPrintHtml(title,body,orient,margH,margW);
+    window.electronAPI.openPrintWindow(fullHtml,title);
+    return;
+  }
+  // Webbläsarfallback
   const w=window.open('','_blank');
   if(!w){showToast('Popup blockerad — tillåt popup-fönster i webbläsaren');return;}
   const orient=landscape?'landscape':'portrait';
   const margH=landscape?'8mm':'12mm';
   const margW=landscape?'8mm':'15mm';
-  w.document.write(`<!DOCTYPE html><html><head>
+  const _html=buildPrintHtml(title,body,orient,margH,margW);
+  w.document.write(_html);
+  w.document.close();
+}
+
+function buildPrintHtml(title,body,orient,margH,margW){
+  return`<!DOCTYPE html><html><head>
   <meta charset="UTF-8">
   <title>${title}</title>
   <style>
@@ -2759,44 +2792,33 @@ function openPrintWin(title,body,landscape=false){
     h2{font-size:11pt;margin:10px 0 3px;page-break-after:avoid;break-after:avoid}
     h3{font-size:9.5pt;margin:6px 0 2px;color:#222;page-break-after:avoid;break-after:avoid}
     .meta{font-size:7.5pt;color:#666;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid #ddd}
-    /* Tables */
     table{border-collapse:collapse;width:100%;font-size:8pt;table-layout:auto}
     th{background:#eee;padding:3px 5px;border:1px solid #ccc;font-size:7.5pt;white-space:nowrap;vertical-align:bottom}
     td{padding:3px 4px;border:1px solid #ddd;vertical-align:top;word-break:break-word}
     tr{break-inside:avoid}
     thead{display:table-header-group}
-    /* Grade badges */
     .dist-bar{height:13px;display:flex;border-radius:3px;overflow:hidden;margin:2px 0}
     .dist-seg{display:flex;align-items:center;justify-content:center;font-size:6pt;font-weight:700;color:#fff}
-    /* Layout */
     .page-break{page-break-before:always;break-before:always}
     .no-break{break-inside:avoid;page-break-inside:avoid}
     .no-data{color:#999;font-style:italic}
-    /* Running header */
     .print-header{display:none}
     @media print{
       .print-header{display:flex;justify-content:space-between;font-size:7pt;color:#999;
         border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:8px}
     }
-    @page{
-      size:A4 ${orient};
-      margin:${margH} ${margW};
-    }
+    @page{size:A4 ${orient};margin:${margH} ${margW};}
   </style>
   </head><body>
   <div class="print-header"><span>${title}</span><span class="page-num"></span></div>
   ${body}
   <script>
-    // Number pages
     window.onload=()=>{
-      const nums=document.querySelectorAll('.page-num');
-      // Can't easily get page count in JS — just show date
-      nums.forEach(el=>el.textContent=new Date().toLocaleDateString('sv-SE'));
+      document.querySelectorAll('.page-num').forEach(el=>el.textContent=new Date().toLocaleDateString('sv-SE'));
       window.print();
       window.close();
     };
-  <\/script></body></html>`);
-  w.document.close();
+  <\/script></body></html>`;
 }
 
 function gradeSpan(g){
@@ -3620,8 +3642,7 @@ function printProgressionView(){
   const name=document.getElementById('prog-name').textContent;
   const meta=document.getElementById('prog-meta').textContent;
   const body=document.getElementById('prog-body').innerHTML;
-  const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(name)}</title>
+  const _epHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(name)}</title>
   <style>
   *{box-sizing:border-box}
   body{font-family:Arial,sans-serif;font-size:9pt;color:#000;margin:0;padding:0}
@@ -3635,7 +3656,13 @@ function printProgressionView(){
   <h1>${esc(name)}</h1><div class="meta">${esc(meta)}</div>
   ${body}
   <script>window.onload=()=>{window.print();window.close();}<\/script>
-  </body></html>`);
+  </body></html>`;
+  if(isElectron&&window.electronAPI?.openPrintWindow){
+    window.electronAPI.openPrintWindow(_epHtml,'Utskrift');return;
+  }
+  const w=window.open('','_blank');
+  if(!w){showToast('Popup blockerad');return;}
+  w.document.write(_epHtml);
   w.document.close();
 }
 
@@ -3973,6 +4000,30 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v119',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔧', text:'Kedjan F→E under badgen visar nu korrekt originalbetyget F, inte det uppdaterade E.' },
+    ]
+  },
+  {
+    version: 'v118',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'📋', text:'Historiken visar nu korrekt originalbetyget (F) vid omprov, inte det uppdaterade betyget. Omprov-dialogen visar också alltid rätt ursprungsbetyg.' },
+    ]
+  },
+  {
+    version: 'v117',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🖨', text:'Utskrifter fungerar nu i .exe-versionen — Electron öppnar ett dedikerat utskriftsfönster istället för att förlita sig på window.open som blockeras i packade appar.' },
+    ]
+  },
+  {
     version: 'v116',
     label: 'Senaste',
     date: '2026-03',
@@ -4119,7 +4170,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v116';
+const LATEST_VERSION = 'v119';
 
 function openReleaseNotes(){
   openSettings();
@@ -5024,8 +5075,10 @@ function openOmprovDialog(sid,sk,yr,ai,mi,sname,aname,mname){
   const areas=(c.areas[sk]||{})[yr]||[];
   const resolvedAname=aname||(areas[parseInt(ai)]?.name||'');
   const resolvedMname=mname||(areas[parseInt(ai)]?.moments[parseInt(mi)]||'');
-  const origGrade=c.grades[key]||'';
   const results=getOmprovResults(c,key);
+  // Ursprungsbetyget: om omprov redan gjorts, ta prevGrade från första försöket
+  // Annars är det vad som finns i grades[key]
+  const origGrade=(results.length>0&&results[0].prevGrade)||c.grades[key]||'';
 
   _omprovTarget={sid,sk,yr:parseInt(yr),ai:parseInt(ai),mi:parseInt(mi),key};
   _omprovPendingGrade=null;
@@ -5089,8 +5142,10 @@ function saveOmprovResult(){
   const note=document.getElementById('omprov-note').value.trim();
   const results=getOmprovResults(c,key);
   const attempt=results.length+1;
-  const prevGrade=c.grades[key]||'';
-  results.push({grade:_omprovPendingGrade,note,date:todayStr(),attempt,prevGrade});
+  // Ursprungsbetyget: alltid från första försökets prevGrade (eller c.grades om första gången)
+  const trueOrigGrade=(results.length>0&&results[0].prevGrade)||c.grades[key]||'';
+  const prevGrade=trueOrigGrade;
+  results.push({grade:_omprovPendingGrade,note,date:todayStr(),attempt,prevGrade:trueOrigGrade});
 
   // Skriv över originalbetyget OM omprovet är godkänt (A-E)
   // Vid F eller Komp behålls originalbetyget — omprovresultatet finns i historiken
@@ -5104,10 +5159,10 @@ function saveOmprovResult(){
   }
   // Det gamla betyget bevaras alltid i omprovResults[].prevGrade och historiken
 
-  // Logga betygsändringen i historiken
-  if(prevGrade&&prevGrade!==_omprovPendingGrade){
+  // Logga betygsändringen i historiken — från originalbetyget
+  if(trueOrigGrade&&trueOrigGrade!==_omprovPendingGrade){
     if(!c.history[key])c.history[key]=[];
-    c.history[key].push({from:prevGrade,to:_omprovPendingGrade,note:`Omprov (försök ${attempt})`,date:todayStr()});
+    c.history[key].push({from:trueOrigGrade,to:_omprovPendingGrade,note:`Omprov (försök ${attempt})`,date:todayStr()});
   }
 
   // Hantera retake-flagga
@@ -5120,7 +5175,7 @@ function saveOmprovResult(){
   const s=c.students.find(x=>x.id===sid)||{name:sid};
   const def=subjectDef(sk,c);
   addLog('grade',
-    `Omprov ${attempt}: ${s.name} ${gradeLabel(prevGrade)}→${gradeLabel(_omprovPendingGrade)}`,
+    `Omprov ${attempt}: ${s.name} ${gradeLabel(trueOrigGrade)}→${gradeLabel(_omprovPendingGrade)}`,
     `${def.name} ÅK${yr} · försök ${attempt}`,
     currentClassId
   );
