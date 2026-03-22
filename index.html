@@ -3742,243 +3742,18 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
-    version: 'v28',
+    version: 'v100',
     label: 'Senaste',
     date: '2026-03',
     items: [
-      { type:'added', icon:'🔄', text:'Testar auto-uppdatering via GitHub — om du ser detta fungerar det!' },
-    ]
-  },
-  {
-    version: 'v27',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'added',    icon:'🎨', text:'Nytt modernt tema — välj mellan Klassisk och Modern under Inställningar. Modern använder Inter-fonten, renare färger och tydligare betygsceller.' },
-      { type:'added',    icon:'🔄', text:'Auto-uppdatering via GitHub — appen meddelar och uppdaterar sig själv när ny version finns.' },
-      { type:'improved', icon:'⚙',  text:'Omprov kräver nu F och Komp som standard — E– borttaget. Konfigurerbart under Betygsvärden.' },
-    ]
-  },
-  {
-    version: 'v24',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'fixed',    icon:'🖨', text:'Elevrapport-utskrift visar nu helhetsbedömningar per arbetsområde i tillägg till terminsbetyg' },
-      { type:'fixed',    icon:'🖨', text:'Riskzon-utskrift inkluderar nu helhetsbedömningar som tidig varning (⚡), precis som riskzon-vyn i statistiken' },
-      { type:'fixed',    icon:'🖨', text:'Statistiksammanfattning visar nu helhetsbedömningar per arbetsområde under terminsbetygsraderna' },
-      { type:'fixed',    icon:'🎨', text:'Betygsbrickor i utskrifter (gradeSpan) använder nu inline-stilar — fungerar korrekt i alla utskriftsfönster' },
-    ]
-  },
-  {
-    version: 'v23',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'improved', icon:'🗑', text:'"Farliga åtgärder" är nu en utbyggd Rensningspanel med separata knappar per datatyp' },
-      { type:'added',    icon:'🗑', text:'Rensa individuellt: momentbetyg, terminsbetyg, omprov, anteckningar, historik, frånvaro, CC-kopplingar, kriterie-kopplingar, kriterieuppfyllnad, anpassningar eller Att göra-hanterade' },
-      { type:'improved', icon:'📊', text:'Varje rensningsknapp visar antal sparade poster så du vet vad som finns innan du raderar' },
-    ]
-  },
-  {
-    version: 'v22',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'added',    icon:'⭐', text:'Kriterieuppfyllnad i betygspickern — vid Helhetsbedömning visas checkboxar för kopplade betygskriterier (E/C/A), bocka i vilka som uppfylls' },
-      { type:'added',    icon:'⚙',  text:'Ny inställning "📚 Kursplan" i sidopanelen — stäng av hela kursplansdelen eller bara kriteriedelen i pickern' },
-      { type:'improved', icon:'🔒', text:'Kursplansknappen i topbaren döljs automatiskt när kursplan är inaktiverad' },
-    ]
-  },
-  {
-    version: 'v21',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'improved', icon:'📚', text:'Kursplansbiblioteket täcker nu ALLA grundskoleämnen: SO, Matte, NO, Språk (Svenska, Engelska, Moderna språk), Praktisk/Estetisk (Idrott, Bild, Musik, Slöjd, HK) och Teknik' },
-      { type:'improved', icon:'🔽', text:'Ämnesväljaren i kursplansmodalen är nu en dropdown-meny grupperad efter ämnesområde' },
-      { type:'added',    icon:'⭐', text:'Betygskriterier kan nu kopplas till enskilda arbetsområden — välj vilka E/C/A-kriterier som är aktuella för varje arbetsområde' },
-      { type:'improved', icon:'📊', text:'Statistik → Kursplan visar nu täckning för både centralt innehåll och betygskriterier' },
-    ]
-  },
-  {
-    version: 'v20',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'added', icon:'📚', text:'Kursplansbibliotek (LGR22) — ny modal "📚 Kursplan" i topbaren med centralt innehåll och betygskriterier för SO, Matte och NO-ämnena' },
-      { type:'added', icon:'🔗', text:'Koppla arbetsområden till kursplanspunkter — klicka "📋 Koppla kursplan" vid ett arbetsområde i Klass-fliken' },
-      { type:'added', icon:'📊', text:'Ny flik "📚 Kursplan" i Statistik — visar hur stor andel av det centrala innehållet som är täckt per ämne' },
-      { type:'improved', icon:'✏', text:'Kursplansanteckningarna i Klass-fliken heter nu "✏ Anteckning" för att skilja dem från LGR22-kopplingarna' },
-    ]
-  },
-  {
-    version: 'v19',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'added',    icon:'🪗', text:'Översikt: årskurserna är nu hopfällbara precis som arbetsområden — klicka på årsrubriken för att fälla upp/ned' },
-      { type:'improved', icon:'💡', text:'Helhetsbedömning: rekommendationen baseras nu på övriga moment i SAMMA arbetsområde (Prov, Uppgift 1 osv.) — mycket mer relevant underlag' },
-      { type:'added',    icon:'⚙',  text:'Ny inställning "💡 Rekommendationer" i sidopanelen — stäng av rekommendation vid Helhetsbedömning, Terminsbetyg eller båda' },
-    ]
-  },
-  {
-    version: 'v18',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'fixed', icon:'🔧', text:'Flikbyte och klassval kan inte längre frysa appen — fel isoleras och visas som ett meddelande istället' },
-      { type:'fixed', icon:'🔧', text:'Rättade bugg där renderSetup anropades dubbelt — orsakade ibland låsning vid Klass-fliken' },
-      { type:'fixed', icon:'🔧', text:'Alla modaler hanterar nu saknade DOM-element utan att krascha' },
-      { type:'fixed', icon:'🔧', text:'Autospar, betygssparning och elevtillägg har nu felhantering som inte blockerar UI:t' },
-    ]
-  },
-  {
-    version: 'v17',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'fixed',    icon:'📝', text:'Ändringshistorik loggas nu bara om ett betyg redan var satt — första betyget skapar inte en onödig "ändring"' },
-      { type:'improved', icon:'📈', text:'Progressionsvyn har nu tre lägen: Terminsbetyg, Helhetsbedömningar, och Båda — välj vad du vill se per visning' },
-      { type:'improved', icon:'⭐', text:'Helhetsbedömning-kolumner markeras med ⭐ i tabellrubriken och en guldkant på cellerna — betygets färg (A=grön, F=röd) visas tydligt, inte övermålat av gult' },
-      { type:'improved', icon:'🏷', text:'Micro-etikett "HELHET" ovanför betyget i helhetsbedömningsceller för snabb identifiering' },
-    ]
-  },
-  {
-    version: 'v16',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'improved', icon:'🔄', text:'Omprovflöde ombyggt från grunden — F/Komp/E- flaggas automatiskt för omprov, ny dedikerad dialog för att registrera omprovresultat' },
-      { type:'improved', icon:'📊', text:'Betygskedjan visas direkt i tabellen: ursprungsbetyg (genomstruket) → omprovbetyg, klickbart för att se historik' },
-      { type:'improved', icon:'🔴', text:'Orange ring runt betyg som väntar på omprov — tydlig visuell signal i tabellen' },
-      { type:'improved', icon:'📋', text:'Att göra-listan skiljer nu på "väntar på omprov" och "omprov genomfört men fortfarande ej godkänd"' },
-      { type:'removed',  icon:'🗑', text:'Omprov-kryssrutan i betygspickern borttagen — ersatt av det nya tydligare omprovflödet' },
-    ]
-  },
-  {
-    version: 'v15',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'improved', icon:'📊', text:'Klassbild: ny växling mellan Terminsbetyg och Helhetsbedömningar — se distributionen per arbetsområde' },
-      { type:'improved', icon:'⚠',  text:'Riskzon: inkluderar nu helhetsbedömningar som tidig varning (⚡) — fångar riskzonen INNAN terminsbetyget sätts' },
-      { type:'added',    icon:'📋', text:'Ny flik "Att göra" — samlar alla omprov, F-betyg, kompletteringar och anpassade betygsvärden som behöver åtgärdas, med kryssruta för att markera hanterade' },
-      { type:'added',    icon:'📝', text:'Ny utskrift: Arbetsområdesrapport — helhetsbedömningar per arbetsområde, ämne och år' },
-      { type:'added',    icon:'📋', text:'Ny utskrift: Att göra-lista — åtgärdslista med tom kolumn för anteckningar/datum, lämplig vid uppföljningsmöten' },
-      { type:'improved', icon:'🔧', text:'Anpassningar visas nu i Elevvyn under ett eget avsnitt — enklare att administrera per elev istället för per moment' },
-    ]
-  },
-  {
-    version: 'v14',
-    label: 'Senaste',
-    date: '2026-03',
-    items: [
-      { type:'fixed',    icon:'🔧', text:'Ministatistik och betygsrekommendation visas nu BARA under Helhetsbedömning — inte under Prov, Uppgift 1 osv.' },
-      { type:'improved', icon:'📊', text:'Helt ombyggd Statistik-modal med fyra flikar: Klassbild, Jämför klasser, Riskzon och Utskrift' },
-      { type:'added',    icon:'📈', text:'Klassbild — KPI-rutor med andel som når E, antal omprov, riskzonselever, plus betygsdistributionsstaplar per ämne och år' },
-      { type:'improved', icon:'⚖',  text:'Jämför klasser — tydligare stapeldiagram med procentetiketter och "% ≥E"-indikator per klass' },
-      { type:'added',    icon:'⚠',  text:'Riskzon-flik — samlar alla elever med F, E– eller hög frånvaro med direktlänk till elevvy' },
-      { type:'added',    icon:'🖨',  text:'Utskrift-flik — fyra väldefinierade rapporter: Klassrapport, Riskzonrapport, Elevrapporter (IUP) och Statistiksammanfattning' },
-    ]
-  },
-  {
-    version: 'v13',
-    label: 'Ny',
-    date: '2026-03',
-    items: [
-      { type:'added',    icon:'📝', text:'Nationella prov: konfigurerbart per prov — välj vilka delar som ingår (Skriftlig, Läsförståelse, Hörförståelse, Muntlig, Sammanfattande)' },
-      { type:'added',    icon:'📅', text:'Läsårshantering — ställ in startdatum och ÅK, appen räknar ut automatiskt när klassen bör rullas upp varje höst' },
-      { type:'added',    icon:'🔧', text:'Anpassningar (valfri funktion) — registrera anpassningar per elev och ämne, visas i elevvyn och utskrifter' },
-      { type:'improved', icon:'⭐', text:'Topbar-knappen heter nu "📊 Statistik" och öppnar den nya statistikmodalen' },
-    ]
-  },
-  {
-    version: 'v12',
-    label: 'Ny',
-    date: '2026-03',
-    items: [
-      { type:'fixed',    icon:'🐛', text:'"Lägg till en elev" låser sig inte längre — ny rad läggs till utan att hela sidan renderas om' },
-      { type:'improved', icon:'📝', text:'Nationella prov: resultat registreras nu per elev (inte bara per prov)' },
-      { type:'improved', icon:'🎯', text:'Betygsrekommendation: använder nu den vanligaste graden bland helhetsbedömningar, inte ett genomsnitt' },
-      { type:'improved', icon:'🟡', text:'Helhetsbedömning-celler har nu en distinkt amber/guldton i tabellen' },
-      { type:'fixed',    icon:'🐛', text:'Årskurs 6 visar nu bara VT-betyget (som är det relevanta slutbetyget från mellanstadiet)' },
-      { type:'added',    icon:'🪗', text:'Klass-fliken: ämnen är nu hopfällbara accordions — klicka för att öppna det du vill redigera' },
-    ]
-  },
-  {
-    version: 'v11',
-    label: 'Ny',
-    date: '2026-03',
-    items: [
-      { type:'added',    icon:'💡', text:'Ministatistik i betygspickern — visar helhetsbedömningar från övriga arbetsområden som beslutsunderlag' },
-      { type:'improved', icon:'🚫', text:'Omprov-kryssrutan dold vid terminsbetyg och nationella prov — visas bara vid momentbetyg' },
-      { type:'added',    icon:'📝', text:'Nationella prov ÅK 9 — registrera prov per ämne med upp till fem delresultat, syns i Översikten' },
-      { type:'added',    icon:'📅', text:'Terminsval per ämne och år — sätt "Bara HT", "Bara VT" eller "Båda" per ämne för att slippa tomma kolumner' },
-    ]
-  },
-  {
-    version: 'v10',
-    label: 'Ny',
-    date: '2026-03',
-    items: [
-      { type:'added',    icon:'6️⃣', text:'Stöd för ÅK 6 — registrera VT-betyg från mellanstadiet för alla ämnen, syns i Översikt och Progressionsvy' },
-      { type:'improved', icon:'📈', text:'Progressionskurvan visar nu ÅK 6 som startpunkt med streckade cirklar och en markör för övergång till högstadiet' },
-      { type:'improved', icon:'📊', text:'Klassjämförelsen har nu ÅK 6 i årsvalslistan' },
-    ]
-  },
-  {
-    version: 'v9',
-    label: 'Ny',
-    date: '2025-03',
-    items: [
-      { type:'added',   icon:'📈', text:'Elevprogressionsvy — tidslinje per ämne med terminsbetyg plottat som kurva över ÅK 7–9' },
-      { type:'added',   icon:'📋', text:'Kursplanspanel per arbetsområde — centralt innehåll och betygskriterier (A/C/E)' },
-      { type:'added',   icon:'🆕', text:'Versionshistorik (denna panel)' },
-      { type:'added',   icon:'🔍', text:'Händelselogg — loggar betygsändringar, elever, klasser och ämnen' },
-    ]
-  },
-  {
-    version: 'v8',
-    label: 'Ny',
-    date: '2025-03',
-    items: [
-      { type:'added',   icon:'📚', text:'Stöd för alla grundskoleämnen — Matte, NO, Idrott, Bild, Musik, Slöjd m.fl.' },
-      { type:'added',   icon:'✏️', text:'Egna ämnen med valfritt namn och emoji-ikon' },
-    ]
-  },
-  {
-    version: 'v7',
-    label: 'Ny',
-    date: '2025-03',
-    items: [
-      { type:'added',   icon:'🖨', text:'PDF-export för betygstabeller och översikter' },
-      { type:'added',   icon:'👤', text:'Elevvy med samlade betyg, omprov och frånvaro' },
-      { type:'added',   icon:'⚠', text:'Frånvarovarning med konfigurerbar gräns' },
-      { type:'added',   icon:'📊', text:'Klassjämförelse som SVG-stapeldiagram' },
-      { type:'added',   icon:'💾', text:'Manuell spara-knapp + Ctrl+S + veckobackup' },
-    ]
-  },
-  {
-    version: 'v4–v6',
-    label: '',
-    date: '2025-02',
-    items: [
-      { type:'added',   icon:'🗂', text:'Arbetsområden per ÅK 7/8/9, terminsbetyg HT/VT, frånvaroregistrering' },
-      { type:'added',   icon:'🎨', text:'Anpassningsbara betygsvärden, ändringshistorik, omprovsmarkering' },
-    ]
-  },
-  {
-    version: 'v1–v3',
-    label: '',
-    date: '2025-02',
-    items: [
-      { type:'added',   icon:'🏛', text:'Grundläggande bedömningsmall för SO-ämnen med betyg A–F och multi-klass-stöd' },
+      { type:'added', icon:'🎓', text:'SO Bedömning — stabil version 1.0. Betygssättning, helhetsbedömningar, omprov, statistik, kursplan (LGR22), anpassningar och mycket mer.' },
+      { type:'added', icon:'🔄', text:'Automatiska uppdateringar via GitHub — nya funktioner och förbättringar levereras direkt utan ominstallation.' },
+      { type:'added', icon:'🎨', text:'Välj mellan klassiskt och modernt tema under Inställningar.' },
     ]
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v28';
+const LATEST_VERSION = 'v100';
 
 function openReleaseNotes(){
   renderReleaseList();
@@ -3994,7 +3769,13 @@ function renderReleaseList(){
   const TYPE_LABEL = { added:'Nytt', improved:'Förbättrat', fixed:'Fixat', removed:'Borttaget' };
   const TYPE_CSS   = { added:'type-added', improved:'type-improved', fixed:'type-fixed', removed:'type-removed' };
 
-  document.getElementById('release-list').innerHTML = RELEASES.map((rel,ri) => {
+  // Show current version at top
+  const verStr=`<div style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px;padding:7px 10px;background:var(--surface2);border-radius:6px;display:flex;align-items:center;gap:6px">
+    <span style="font-weight:600">Installerad version:</span>
+    <span style="font-weight:700;color:var(--accent)">${LATEST_VERSION}</span>
+  </div>`;
+
+  document.getElementById('release-list').innerHTML = verStr + RELEASES.map((rel,ri) => {
     const badgeClass = ri===0 ? 'badge-latest' : rel.label==='Fix' ? 'badge-fix' : rel.label ? 'badge-new' : '';
     const items = rel.items.map(it => `
       <div class="release-item">
@@ -6142,14 +5923,15 @@ const HOT_UPDATE_URL = 'https://raw.githubusercontent.com/jonathanlundinlarare-c
 const CURRENT_VERSION = LATEST_VERSION; // ex 'v27'
 
 async function checkHotUpdate(manual=false){
-  if(!isElectron)return; // bara i Electron-appen
+  if(!isElectron)return;
   try{
-    const res=await fetch(HOT_UPDATE_URL+'?t='+Date.now());
-    if(!res.ok)return;
-    const html=await res.text();
+    // Använd Electron IPC för att hämta — undviker CORS och säkerhetsbegränsningar
+    const result=await window.electronAPI.fetchUpdate(HOT_UPDATE_URL);
+    if(!result.ok||!result.html)return;
+    const html=result.html;
 
     // Hitta versionsnumret i den hämtade filen
-    const m=html.match(/const LATEST_VERSION = '(v[\d]+)'/);
+    const m=html.match(/const LATEST_VERSION = '(v\d+)'/);
     if(!m)return;
     const remoteVersion=m[1];
 
