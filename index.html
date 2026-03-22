@@ -285,8 +285,8 @@
 [data-theme="dark"] .class-item.active{background:var(--accent-lt);color:var(--accent)}
 [data-theme="dark"] .class-item.active .class-name{color:var(--accent)}
 [data-theme="dark"] .class-count{background:var(--surface2);color:var(--text-muted)}
-[data-theme="dark"] .th-name{background:var(--surface2)!important}
-[data-theme="dark"] td.td-name{background:var(--surface)!important;color:var(--text)}
+[data-theme="dark"] .th-name{background:var(--surface2)!important;box-shadow:2px 0 6px rgba(0,0,0,.3)}
+[data-theme="dark"] td.td-name{background:var(--surface)!important;color:var(--text);box-shadow:2px 0 6px rgba(0,0,0,.3)}
 [data-theme="dark"] th{background:var(--surface2)!important;color:var(--text-muted)!important;border-color:var(--border)!important}
 [data-theme="dark"] td{border-color:var(--border)!important}
 [data-theme="dark"] tr:hover td{background:var(--surface2)!important}
@@ -409,7 +409,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);dis
 .table-wrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.78rem}
 th{background:var(--surface2);padding:5px 8px;text-align:center;font-weight:600;font-size:.7rem;color:var(--text-muted);border:1px solid var(--border);white-space:nowrap}
-th.th-name{text-align:left;min-width:140px;position:sticky;left:0;z-index:2;background:var(--surface2)}
+th.th-name{text-align:left;min-width:140px;position:sticky;left:0;z-index:10;background:var(--surface2);box-shadow:2px 0 4px rgba(0,0,0,.06)}
+thead th.th-name{top:0}
 th.th-area-6{background:var(--yr6);color:#fff;font-size:.72rem}
 th.th-area-7{background:var(--yr7);color:#fff;font-size:.72rem}
 th.th-area-8{background:var(--yr8);color:#fff;font-size:.72rem}
@@ -417,15 +418,15 @@ th.th-area-9{background:var(--yr9);color:#fff;font-size:.72rem}
 th.th-ht{background:#e8d5b0;color:#5a3800}
 th.th-vt{background:#b0cce8;color:#00305a}
 td{padding:4px 5px;border:1px solid var(--border-soft);text-align:center;vertical-align:middle}
-td.td-name{text-align:left;font-weight:500;padding:5px 9px;position:sticky;left:0;background:var(--surface);z-index:1;white-space:nowrap;cursor:pointer}
+td.td-name{text-align:left;font-weight:500;padding:5px 9px;position:sticky;left:0;background:var(--surface);z-index:5;white-space:nowrap;cursor:pointer;box-shadow:2px 0 4px rgba(0,0,0,.06)}
 td.td-name:hover{text-decoration:underline;color:var(--accent)}
 tr:hover td{background:#f7f5f0}
-tr:hover td.td-name{background:#ece8e0}
+tr:hover td.td-name{background:var(--border-soft)}
 tr:nth-child(even) td{background:var(--surface2)}
 tr:nth-child(even):hover td{background:var(--border-soft)}
-tr:nth-child(even) td.td-name{background:var(--surface2)}
+tr:nth-child(even) td.td-name{background:var(--surface2);box-shadow:2px 0 4px rgba(0,0,0,.06)}
 tr.risk-row td{background:var(--risk-bg)!important}
-tr.risk-row td.td-name{background:var(--risk-bg)!important;color:var(--red);font-weight:600}
+tr.risk-row td.td-name{background:var(--risk-bg)!important;color:var(--red);font-weight:600;box-shadow:2px 0 4px rgba(0,0,0,.06)}
 tr.absence-warn td.td-name{border-left:3px solid var(--orange)!important}
 
 /* GRADE BADGE */
@@ -905,6 +906,13 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
 .clear-option-title{font-size:.83rem;font-weight:600;margin-bottom:2px}
 .clear-option-desc{font-size:.74rem;color:var(--text-muted);line-height:1.4}
 .clear-option-count{font-size:.72rem;color:var(--text-light);margin-top:2px}
+
+/* ARKIVERADE KLASSER */
+.class-item.archived{opacity:.55}
+.class-item.archived .class-name{font-style:italic}
+.sb-archive-section{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-light);padding:10px 14px 3px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.sb-archive-section:hover{color:var(--text-muted)}
+.archive-badge{background:var(--surface2);color:var(--text-light);border-radius:8px;padding:1px 6px;font-size:.62rem}
 
 /* UTILS */
 .flex{display:flex}.items-center{align-items:center}.gap-2{gap:8px}.gap-3{gap:12px}
@@ -1611,15 +1619,47 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){
 function renderSidebar(){
   const el=document.getElementById('class-list');
   if(!db.classes.length){el.innerHTML=`<div style="padding:7px 13px;font-size:.78rem;color:var(--text-light)">Inga klasser ännu</div>`;return;}
-  el.innerHTML=db.classes.map(c=>`
-    <div class="class-item ${c.id===currentClassId?'active':''}" onclick="selectClass('${c.id}')">
-      <span>📋</span>
+
+  const makeItem=(c)=>`
+    <div class="class-item ${c.id===currentClassId?'active':''} ${c.archived?'archived':''}" onclick="selectClass('${c.id}')">
+      <span>${c.archived?'📦':'📋'}</span>
       <div style="flex:1;min-width:0"><div class="class-name">${esc(c.name)} ${c.year?`<span class="class-year">${esc(c.year)}</span>`:''}</div></div>
       <span class="class-count">${c.students.length}st${getLasarsBadge(c)}</span>
+      <button class="btn-icon" title="${c.archived?'Återställ':'Arkivera'}" onclick="event.stopPropagation();toggleArchiveClass('${c.id}')">${c.archived?'↩':'📦'}</button>
       <button class="btn-icon" onclick="event.stopPropagation();openRenameClass('${c.id}')">✏</button>
       <button class="btn-icon" onclick="event.stopPropagation();deleteClass('${c.id}')">🗑</button>
-    </div>`).join('');
+    </div>`;
+
+  const active=db.classes.filter(c=>!c.archived);
+  const archived=db.classes.filter(c=>c.archived);
+  let html=active.map(makeItem).join('');
+  if(archived.length){
+    html+=`<div class="sb-archive-section" onclick="toggleShowArchived()">
+      📦 Arkiverade <span class="archive-badge">${archived.length}</span>
+      <span style="margin-left:auto">${db._showArchived?'▲':'▼'}</span>
+    </div>`;
+    if(db._showArchived) html+=archived.map(makeItem).join('');
+  }
+  el.innerHTML=html;
 }
+
+function toggleArchiveClass(id){
+  const c=getClass(id);if(!c)return;
+  c.archived=!c.archived;
+  if(c.archived&&currentClassId===id){
+    const next=db.classes.find(x=>!x.archived&&x.id!==id);
+    if(next)selectClass(next.id);
+    else{currentClassId=null;renderSubjectTabs();document.getElementById('main-content').innerHTML='<div class="empty"><div class="empty-icon">📦</div><p>Klassen är arkiverad.</p></div>';}
+  }
+  onChange();renderSidebar();renderTopbar();
+  showToast(c.archived?`"${c.name}" arkiverad`:`"${c.name}" återställd`);
+}
+
+function toggleShowArchived(){
+  db._showArchived=!db._showArchived;
+  renderSidebar();
+}
+
 
 /* ================================================================
    CLASS MANAGEMENT
@@ -3872,6 +3912,15 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v105',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed',    icon:'📌', text:'Elevnamnen är nu alltid synliga när man scrollar i betygstabellen — namn-kolumnen sitter fast med tydlig avgränsning.' },
+      { type:'added',    icon:'📦', text:'Arkivera klasser — klicka 📦 vid en klass för att arkivera den. Data bevaras men klassen gömmer sig under "Arkiverade". Klicka ↩ för att återställa.' },
+    ]
+  },
+  {
     version: 'v104',
     label: 'Senaste',
     date: '2026-03',
@@ -3917,7 +3966,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v104';
+const LATEST_VERSION = 'v105';
 
 function openReleaseNotes(){
   renderReleaseList();
