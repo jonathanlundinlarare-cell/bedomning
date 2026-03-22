@@ -5923,21 +5923,35 @@ const HOT_UPDATE_URL = 'https://raw.githubusercontent.com/jonathanlundinlarare-c
 const CURRENT_VERSION = LATEST_VERSION; // ex 'v27'
 
 async function checkHotUpdate(manual=false){
-  if(!isElectron)return;
+  if(!isElectron){
+    if(manual)showToast('Uppdatering fungerar bara i Electron-appen');
+    return;
+  }
+  if(manual)showToast('Söker efter uppdatering...');
   try{
-    // Använd Electron IPC för att hämta — undviker CORS och säkerhetsbegränsningar
+    if(!window.electronAPI?.fetchUpdate){
+      if(manual)showToast('FEL: fetchUpdate saknas i electronAPI');
+      return;
+    }
     const result=await window.electronAPI.fetchUpdate(HOT_UPDATE_URL);
-    if(!result.ok||!result.html)return;
+    if(!result.ok||!result.html){
+      if(manual)showToast('FEL: Kunde inte hämta från GitHub. Status: '+(result.status||result.error||'okänt'));
+      return;
+    }
     const html=result.html;
 
     // Hitta versionsnumret i den hämtade filen
     const m=html.match(/const LATEST_VERSION = '(v\d+)'/);
-    if(!m)return;
+    if(!m){
+      if(manual)showToast('FEL: Hittade inget versionsnummer i hämtad fil');
+      return;
+    }
     const remoteVersion=m[1];
 
     // Jämför — om remote är nyare, fråga användaren
     const cur=parseInt(CURRENT_VERSION.replace('v',''));
     const rem=parseInt(remoteVersion.replace('v',''));
+    if(manual)showToast('Installerad: '+CURRENT_VERSION+' · GitHub: '+remoteVersion);
     if(rem<=cur){
       if(manual)showToast('Du har redan den senaste versionen ('+CURRENT_VERSION+')');
       return;
