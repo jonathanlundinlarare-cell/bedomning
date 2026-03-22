@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SO Bedömningsmall</title>
+<title>Kunskapskollen</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================================ TOKENS */
@@ -925,6 +925,14 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
 .ml-auto{margin-left:auto}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mb-2{margin-bottom:8px}
 .text-sm{font-size:.8rem}.text-xs{font-size:.71rem}.text-muted{color:var(--text-muted)}
 
+/* Arkiverade elever */
+.stud-row.archived-student{opacity:.45}
+.stud-row.archived-student .stud-name{font-style:italic;text-decoration:line-through}
+tr.archived-student-row td{opacity:.4;font-style:italic}
+.archived-toggle{font-size:.72rem;color:var(--text-muted);cursor:pointer;padding:3px 8px;
+  border:1px solid var(--border);border-radius:6px;background:var(--surface2);margin-top:6px;display:inline-block}
+.archived-toggle:hover{color:var(--text)}
+
 /* ═══ FÖRHANDSVISNING MODAL ════════════════════════════════════════ */
 .preview-overlay{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.55);
   display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
@@ -947,7 +955,20 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="topbar-logo drag-region">📚 SO Bedömning</div>
+  <div class="topbar-logo drag-region">
+    <svg width="24" height="24" viewBox="0 0 100 100" style="flex-shrink:0">
+      <!-- Soft green circle -->
+      <circle cx="50" cy="50" r="50" fill="#16a34a"/>
+      <!-- Modern K: clean geometric shapes -->
+      <!-- Vertical bar -->
+      <rect x="22" y="22" width="14" height="56" rx="3" fill="white"/>
+      <!-- Top diagonal arm -->
+      <polygon points="36,50 68,22 80,22 48,50" fill="white"/>
+      <!-- Bottom diagonal arm -->
+      <polygon points="36,50 68,78 80,78 48,50" fill="white"/>
+    </svg>
+    Kunskapskollen
+  </div>
   <div class="topbar-info drag-region" id="topbar-info">Välj en klass i sidopanelen</div>
   <div class="topbar-actions">
     <span class="unsaved-label" id="unsaved-label">Osparade ändringar</span>
@@ -1651,7 +1672,7 @@ function renderSidebar(){
     <div class="class-item ${c.id===currentClassId?'active':''} ${c.archived?'archived':''}" onclick="selectClass('${c.id}')">
       <span>${c.archived?'📦':'📋'}</span>
       <div style="flex:1;min-width:0"><div class="class-name">${esc(c.name)} ${c.year?`<span class="class-year">${esc(c.year)}</span>`:''}</div></div>
-      <span class="class-count">${c.students.length}st${getLasarsBadge(c)}</span>
+      <span class="class-count">${c.students.filter(s=>!s.archived).length}st${getLasarsBadge(c)}</span>
       <button class="btn-icon" title="${c.archived?'Återställ':'Arkivera'}" onclick="event.stopPropagation();toggleArchiveClass('${c.id}')">${c.archived?'↩':'📦'}</button>
       <button class="btn-icon" onclick="event.stopPropagation();openRenameClass('${c.id}')">✏</button>
       <button class="btn-icon" onclick="event.stopPropagation();deleteClass('${c.id}')">🗑</button>
@@ -1792,7 +1813,7 @@ function renderGradeTab(cls,sk){
   if(!areas.length)return`<div class="card"><div class="card-header ${yc.ch}"><span class="card-title">${subj.icon} ${subj.name}</span></div><div class="card-body"><div class="year-tabs">${ytabs}</div><p class="text-sm text-muted">Inga arbetsområden för ÅK ${yr}.</p></div></div>`;
 
   const allG=[],retakeCells=[];
-  for(const s of cls.students) for(let ai=0;ai<areas.length;ai++) for(let mi=0;mi<areas[ai].moments.length;mi++){
+  for(const s of cls.students.filter(s=>!s.archived)) for(let ai=0;ai<areas.length;ai++) for(let mi=0;mi<areas[ai].moments.length;mi++){
     const key=gKey(s.id,sk,yr,ai,mi);
     const gOrig=cls.grades[key]||'';
     const g=effectiveGrade(cls,key,gOrig); // visa senaste omprovresultat
@@ -1810,7 +1831,7 @@ function renderGradeTab(cls,sk){
   }
 
   let rows='';
-  for(const s of cls.students){
+  for(const s of cls.students.filter(s=>!s.archived)){
     let cells='';const gvals=[];
     for(let ai=0;ai<areas.length;ai++) for(let mi=0;mi<areas[ai].moments.length;mi++){
       const key=gKey(s.id,sk,yr,ai,mi);const g=cls.grades[key]||'';
@@ -1865,7 +1886,7 @@ function renderGradeTab(cls,sk){
 
   // Pending omprov count (flagged but no result yet)
   const pendingOmprov=[];
-  for(const s of cls.students)for(let ai2=0;ai2<areas.length;ai2++)for(let mi2=0;mi2<areas[ai2].moments.length;mi2++){
+  for(const s of cls.students.filter(s=>!s.archived))for(let ai2=0;ai2<areas.length;ai2++)for(let mi2=0;mi2<areas[ai2].moments.length;mi2++){
     const k=gKey(s.id,sk,yr,ai2,mi2);
     if(cls.retakes[k]&&!((cls.omprovResults||{})[k]||[]).length)
       pendingOmprov.push({name:s.name,moment:areas[ai2].moments[mi2],grade:cls.grades[k]||''});
@@ -2322,7 +2343,7 @@ function renderOversiktYr6(cls, skList){
   subHdr+=`<th class="${yc.area}" rowspan="2">Anteckning</th>`;
 
   let rows='';
-  for(const s of cls.students){
+  for(const s of cls.students.filter(s=>!s.archived)){
     let cells='';
     for(const sk of skList){
       // Only VT for ÅK 6
@@ -2409,7 +2430,7 @@ function renderOversikt(cls){
     subHdr+=`<th class="${yc.area}" rowspan="2">Anteckning</th>`;
 
     let rows='';
-    for(const s of cls.students){
+    for(const s of cls.students.filter(s=>!s.archived)){
       const absWarn=absenceWarn(cls,s.id,yr);
       let cells='';
       for(const sk of skList){const terms=activeTerms(cls,sk,yr);for(const term of terms){
@@ -2523,7 +2544,7 @@ function renderStatTab(){
 
 function getFinalGrades(cls,sk,yr){
   const out=[];
-  for(const s of cls.students)for(const term of TERMS){
+  for(const s of cls.students.filter(s=>!s.archived))for(const term of TERMS){
     const g=((cls.finalGrades[s.id]||{})[sk]||{})[yr]?.[term]||'';
     if(g)out.push({sid:s.id,name:s.name,sk,yr,term,grade:g});
   }
@@ -2531,7 +2552,7 @@ function getFinalGrades(cls,sk,yr){
 }
 function getAllMomentGrades(cls,sk,yr){
   const out=[];const areas=(cls.areas[sk]||{})[yr]||[];
-  for(const s of cls.students)for(let ai=0;ai<areas.length;ai++)for(let mi=0;mi<areas[ai].moments.length;mi++){
+  for(const s of cls.students.filter(s=>!s.archived))for(let ai=0;ai<areas.length;ai++)for(let mi=0;mi<areas[ai].moments.length;mi++){
     const key=gKey(s.id,sk,yr,ai,mi);const g=cls.grades[key]||'';
     if(g)out.push({sid:s.id,name:s.name,grade:g,area:areas[ai].name,moment:areas[ai].moments[mi]});
   }
@@ -2556,7 +2577,7 @@ function distBar(grades,label){
 function getHelhetsGrades(cls,sk,yr){
   const grades=[];
   const areas=(cls.areas[sk]||{})[yr]||[];
-  for(const s of cls.students)
+  for(const s of cls.students.filter(s=>!s.archived))
     for(let ai=0;ai<areas.length;ai++)
       for(let mi=0;mi<areas[ai].moments.length;mi++){
         if(!areas[ai].moments[mi].toLowerCase().includes('helhet'))continue;
@@ -2674,7 +2695,7 @@ function renderStatCompare(){
     if(!classSubjects(cls).includes(curSk))continue;
     const grades=[];
     if(curMode==='moments'){getAllMomentGrades(cls,curSk,curYr).forEach(g=>grades.push(g.grade));}
-    else{const term=curMode.split('-')[1];for(const s of cls.students){const g=((cls.finalGrades[s.id]||{})[curSk]||{})[curYr]?.[term]||'';if(g)grades.push(g);}}
+    else{const term=curMode.split('-')[1];for(const s of cls.students.filter(s=>!s.archived)){const g=((cls.finalGrades[s.id]||{})[curSk]||{})[curYr]?.[term]||'';if(g)grades.push(g);}}
     if(!grades.length)continue;
     const total=grades.length;const cnt={};grades.forEach(g=>cnt[g]=(cnt[g]||0)+1);
     const segs=order.filter(k=>cnt[k]).map(k=>{
@@ -3140,7 +3161,32 @@ function lightenHex(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.sl
 function renderSetup(cls){
   // ── Students ──
   let studHtml='';
-  for(let i=0;i<cls.students.length;i++){const s=cls.students[i];studHtml+=`<div class="stud-row"><span class="stud-num">${i+1}.</span><input type="text" value="${esc(s.name)}" onchange="updateStudent('${s.id}',this.value)"><button class="btn btn-danger btn-xs" onclick="removeStudent('${s.id}')">✕</button></div>`;}
+  const activeStudents=cls.students.filter(s=>!s.archived);
+  const archivedStudents=cls.students.filter(s=>s.archived);
+  for(let i=0;i<activeStudents.length;i++){
+    const s=activeStudents[i];
+    studHtml+=`<div class="stud-row" id="srow_${s.id}">
+      <span class="stud-num">${i+1}.</span>
+      <input type="text" value="${esc(s.name)}" onchange="updateStudent('${s.id}',this.value)">
+      <button class="btn btn-ghost btn-xs" title="Flytta till annan klass" onclick="openMoveStudentModal('${s.id}')">↔</button>
+      <button class="btn btn-ghost btn-xs" title="Arkivera elev" onclick="toggleArchiveStudent('${s.id}')">📦</button>
+      <button class="btn btn-danger btn-xs" onclick="removeStudent('${s.id}')">✕</button>
+    </div>`;
+  }
+  if(archivedStudents.length){
+    studHtml+=`<div class="archived-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('Visa')?'▲ Dölj arkiverade':'▼ Visa arkiverade (${archivedStudents.length})'">▼ Visa arkiverade (${archivedStudents.length})</div>
+    <div style="display:none;margin-top:4px">`;
+    for(const s of archivedStudents){
+      studHtml+=`<div class="stud-row archived-student">
+        <span class="stud-num">–</span>
+        <span style="flex:1;font-size:.82rem;padding:3px 7px">${esc(s.name)}</span>
+        <button class="btn btn-ghost btn-xs" title="Flytta till annan klass" onclick="openMoveStudentModal('${s.id}')">↔</button>
+        <button class="btn btn-ghost btn-xs" title="Återställ" onclick="toggleArchiveStudent('${s.id}')">↩</button>
+        <button class="btn btn-danger btn-xs" onclick="removeStudent('${s.id}')">✕</button>
+      </div>`;
+    }
+    studHtml+='</div>';
+  }
 
   // ── Active subjects panel ──
   const subs=classSubjects(cls);
@@ -3278,7 +3324,7 @@ function addOneStudent(){
     list.appendChild(row);
     // Update the student count badge in sidebar without full re-render
     const badge=document.querySelector(`.class-item.active .class-count`);
-    if(badge)badge.textContent=`${c.students.length}st`;
+    if(badge)badge.textContent=`${c.students.filter(s=>!s.archived).length}st`;
     renderTopbar();
     // Focus the new input — longer delay avoids race with Electron renderer
     setTimeout(()=>{
@@ -3924,7 +3970,32 @@ window.renderSetup=function(cls){
 
 function _buildSetupWithCurriculum(cls){
   let studHtml='';
-  for(let i=0;i<cls.students.length;i++){const s=cls.students[i];studHtml+=`<div class="stud-row"><span class="stud-num">${i+1}.</span><input type="text" value="${esc(s.name)}" onchange="updateStudent('${s.id}',this.value)"><button class="btn btn-danger btn-xs" onclick="removeStudent('${s.id}')">✕</button></div>`;}
+  const activeStudents=cls.students.filter(s=>!s.archived);
+  const archivedStudents=cls.students.filter(s=>s.archived);
+  for(let i=0;i<activeStudents.length;i++){
+    const s=activeStudents[i];
+    studHtml+=`<div class="stud-row" id="srow_${s.id}">
+      <span class="stud-num">${i+1}.</span>
+      <input type="text" value="${esc(s.name)}" onchange="updateStudent('${s.id}',this.value)">
+      <button class="btn btn-ghost btn-xs" title="Flytta till annan klass" onclick="openMoveStudentModal('${s.id}')">↔</button>
+      <button class="btn btn-ghost btn-xs" title="Arkivera elev" onclick="toggleArchiveStudent('${s.id}')">📦</button>
+      <button class="btn btn-danger btn-xs" onclick="removeStudent('${s.id}')">✕</button>
+    </div>`;
+  }
+  if(archivedStudents.length){
+    studHtml+=`<div class="archived-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('Visa')?'▲ Dölj arkiverade':'▼ Visa arkiverade (${archivedStudents.length})'">▼ Visa arkiverade (${archivedStudents.length})</div>
+    <div style="display:none;margin-top:4px">`;
+    for(const s of archivedStudents){
+      studHtml+=`<div class="stud-row archived-student">
+        <span class="stud-num">–</span>
+        <span style="flex:1;font-size:.82rem;padding:3px 7px">${esc(s.name)}</span>
+        <button class="btn btn-ghost btn-xs" title="Flytta till annan klass" onclick="openMoveStudentModal('${s.id}')">↔</button>
+        <button class="btn btn-ghost btn-xs" title="Återställ" onclick="toggleArchiveStudent('${s.id}')">↩</button>
+        <button class="btn btn-danger btn-xs" onclick="removeStudent('${s.id}')">✕</button>
+      </div>`;
+    }
+    studHtml+='</div>';
+  }
 
   const subs=classSubjects(cls);
   const subjectCards=subs.map(sk=>{
@@ -3987,6 +4058,25 @@ function _buildSetupWithCurriculum(cls){
    RELEASE NOTES / VERSIONSHISTORIK
 ================================================================ */
 const RELEASES = [
+  {
+    version: 'v123',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed',    icon:'📦', text:'Arkiverade elever försvinner nu korrekt från betygstabellen, statistik och alla vyer. Av-arkivering återställer dem direkt.' },
+      { type:'improved', icon:'🎨', text:'Ny modernare ikon för Kunskapskollen.' },
+    ]
+  },
+  {
+    version: 'v122',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'improved', icon:'🎨', text:'Appen heter nu Kunskapskollen med ny grön ikon.' },
+      { type:'added',    icon:'↔',  text:'Flytta elev — flytta en elev och all data till en annan klass via knappen i Klass-fliken.' },
+      { type:'added',    icon:'📦', text:'Arkivera elev — dölj en elev från tabellen utan att radera data. Arkiverade elever visas under en hopfällbar sektion.' },
+    ]
+  },
   {
     version: 'v121',
     label: 'Senaste',
@@ -4174,7 +4264,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v121';
+const LATEST_VERSION = 'v123';
 
 function openReleaseNotes(){
   openSettings();
@@ -4768,7 +4858,7 @@ function collectTodoItems(cls){
   // Which custom grade keys count as "needs follow-up"
   const followUpGrades=new Set(['F','E-','K',...(db.customGrades||[]).map(g=>g.key)]);
 
-  for(const s of cls.students){
+  for(const s of cls.students.filter(s=>!s.archived)){
     for(const sk of subs){
       const def=subjectDef(sk,cls);
       for(const yr of YEARS){
@@ -6754,6 +6844,87 @@ function printCurrentPreview(){
   }
 }
 
+
+/* ================================================================
+   FLYTTA / ARKIVERA ELEV
+================================================================ */
+let _moveStudentId = null;
+
+function openMoveStudentModal(sid){
+  const c=currentClass();if(!c)return;
+  const s=c.students.find(x=>x.id===sid);if(!s)return;
+  _moveStudentId=sid;
+  document.getElementById('move-student-name').textContent=s.name;
+
+  // Fyll dropdown med andra klasser (ej nuvarande, ej arkiverade)
+  const sel=document.getElementById('move-target-class');
+  sel.innerHTML=db.classes
+    .filter(cls=>cls.id!==c.id&&!cls.archived)
+    .map(cls=>`<option value="${cls.id}">${esc(cls.name)}${cls.year?' ('+esc(cls.year)+')':''}</option>`)
+    .join('');
+
+  if(!sel.options.length){
+    showToast('Inga andra klasser att flytta till');
+    return;
+  }
+  openModal('modal-move-student');
+}
+
+function confirmMoveStudent(){
+  const fromCls=currentClass();if(!fromCls||!_moveStudentId)return;
+  const targetId=document.getElementById('move-target-class').value;
+  const toCls=getClass(targetId);if(!toCls)return;
+
+  const s=fromCls.students.find(x=>x.id===_moveStudentId);if(!s)return;
+
+  // Flytta eleven
+  toCls.students.push({...s});
+  fromCls.students=fromCls.students.filter(x=>x.id!==s.id);
+
+  // Flytta all data
+  const sid=s.id;
+  const dataKeys=['grades','finalGrades','absence','notes','retakes','history','omprovResults','criteriaResults'];
+  for(const key of dataKeys){
+    if(!fromCls[key])continue;
+    if(!toCls[key])toCls[key]={};
+    // Kopiera alla poster som tillhör denna elev
+    for(const k of Object.keys(fromCls[key])){
+      if(k.startsWith(sid+'|')||k.startsWith(sid+'_')||k===sid){
+        toCls[key][k]=fromCls[key][k];
+        delete fromCls[key][k];
+      }
+    }
+  }
+  // finalGrades är nested: finalGrades[sid]
+  if(fromCls.finalGrades?.[sid]){
+    if(!toCls.finalGrades)toCls.finalGrades={};
+    toCls.finalGrades[sid]=fromCls.finalGrades[sid];
+    delete fromCls.finalGrades[sid];
+  }
+  // absence är nested: absence[sid]
+  if(fromCls.absence?.[sid]){
+    if(!toCls.absence)toCls.absence={};
+    toCls.absence[sid]=fromCls.absence[sid];
+    delete fromCls.absence[sid];
+  }
+
+  addLog('student',`Elev flyttad: ${s.name}`,`${fromCls.name} → ${toCls.name}`,currentClassId);
+  closeModal('modal-move-student');
+  onChange();
+  renderSidebar();
+  renderSubject();
+  showToast(`${s.name} flyttad till ${toCls.name}`);
+}
+
+function toggleArchiveStudent(sid){
+  const c=currentClass();if(!c)return;
+  const s=c.students.find(x=>x.id===sid);if(!s)return;
+  s.archived=!s.archived;
+  onChange();
+  renderSubject(); // re-render klass-fliken
+  showToast(s.archived?`${s.name} arkiverad`:`${s.name} återställd`);
+}
+
 (async function boot(){
   // ── Electron window focus recovery ─────────────────────────────────
   // When OS gives focus back (after minimize/alt-tab), Electron sometimes
@@ -6849,6 +7020,27 @@ function printCurrentPreview(){
       <button class="btn btn-ghost btn-sm" onclick="closePreview()">✕</button>
     </div>
     <div class="preview-content" id="preview-content"></div>
+  </div>
+</div>
+
+<!-- FLYTTA ELEV -->
+<div class="modal-overlay" id="modal-move-student" onclick="if(event.target===this)closeModal('modal-move-student')">
+  <div class="modal" style="width:420px" onclick="event.stopPropagation()">
+    <h2>↔ Flytta elev</h2>
+    <p class="text-sm text-muted mb-3">Eleven och all data (betyg, omprov, anteckningar, frånvaro) flyttas till vald klass.</p>
+    <div class="fg">
+      <label class="fg-label">Elev</label>
+      <div id="move-student-name" style="font-weight:600;padding:6px 0"></div>
+    </div>
+    <div class="fg" style="margin-top:10px">
+      <label class="fg-label">Flytta till klass</label>
+      <select id="move-target-class" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.85rem;background:var(--surface)">
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-move-student')">Avbryt</button>
+      <button class="btn btn-primary" onclick="confirmMoveStudent()">Flytta →</button>
+    </div>
   </div>
 </div>
 </body>
