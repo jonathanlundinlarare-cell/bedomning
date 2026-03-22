@@ -956,16 +956,29 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
 <!-- TOP BAR -->
 <div class="topbar">
   <div class="topbar-logo drag-region">
-    <svg width="24" height="24" viewBox="0 0 100 100" style="flex-shrink:0">
-      <!-- Soft green circle -->
-      <circle cx="50" cy="50" r="50" fill="#16a34a"/>
-      <!-- Modern K: clean geometric shapes -->
-      <!-- Vertical bar -->
-      <rect x="22" y="22" width="14" height="56" rx="3" fill="white"/>
-      <!-- Top diagonal arm -->
-      <polygon points="36,50 68,22 80,22 48,50" fill="white"/>
-      <!-- Bottom diagonal arm -->
-      <polygon points="36,50 68,78 80,78 48,50" fill="white"/>
+    <svg width="26" height="26" viewBox="0 0 180 180" style="flex-shrink:0">
+      <defs>
+        <linearGradient id="tli" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0ea5e9"/>
+          <stop offset="100%" stop-color="#10b981"/>
+        </linearGradient>
+        <linearGradient id="tls" x1="0" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stop-color="white" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="white" stop-opacity="0"/>
+        </linearGradient>
+        <clipPath id="tlc"><rect width="180" height="180" rx="44"/></clipPath>
+      </defs>
+      <rect width="180" height="180" rx="44" fill="url(#tli)"/>
+      <rect width="180" height="180" rx="44" fill="url(#tls)"/>
+      <rect width="180" height="180" rx="44" fill="none" stroke="white" stroke-opacity="0.15" stroke-width="2"/>
+      <g clip-path="url(#tlc)">
+        <circle cx="90" cy="90" r="68" fill="white" opacity="0.1"/>
+        <rect x="34" y="32" width="22" height="116" rx="8" fill="white" opacity="0.95"/>
+        <polygon points="56,80 113,32 140,32 83,80" fill="white" opacity="0.95"/>
+        <polygon points="56,100 83,100 140,148 113,148" fill="white" opacity="0.95"/>
+        <circle cx="134" cy="136" r="20" fill="#0d9488" opacity="0.85"/>
+        <polyline points="125,136 132,143 145,128" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
     </svg>
     Kunskapskollen
   </div>
@@ -4059,6 +4072,14 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v124',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'improved', icon:'🎨', text:'Ny ikon — sky-to-emerald gradient med K och checkmark. Bygg om .exe för att få den nya ikonen i Windows.' },
+    ]
+  },
+  {
     version: 'v123',
     label: 'Senaste',
     date: '2026-03',
@@ -4264,7 +4285,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v123';
+const LATEST_VERSION = 'v124';
 
 function openReleaseNotes(){
   openSettings();
