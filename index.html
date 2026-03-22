@@ -209,6 +209,89 @@
   font-weight:700;
 }
 
+/* ═══ DARK THEME ════════════════════════════════════════════════════ */
+[data-theme="dark"],[data-theme="modern-dark"]{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#252836;--border:#2e3347;--border-soft:#252836;
+  --text:#e8eaf0;--text-muted:#8b92a9;--text-light:#555e7a;
+  --accent:#34d399;--accent-dk:#10b981;--accent-lt:#063b2a;
+  --red:#f87171;--orange:#fb923c;--gold:#fbbf24;
+  --sidebar-w:272px;--header-h:54px;--radius:8px;--radius-lg:12px;
+  --shadow:0 2px 8px rgba(0,0,0,.4);--shadow-lg:0 8px 32px rgba(0,0,0,.6);
+  --yr6:#34d399;--yr6-lt:#063b2a;--yr6-mid:#10b981;
+  --yr7:#60a5fa;--yr7-lt:#1e3a5f;--yr7-mid:#3b82f6;
+  --yr8:#f97316;--yr8-lt:#431407;--yr8-mid:#ea580c;
+  --yr9:#c084fc;--yr9-lt:#3b0764;--yr9-mid:#a855f7;
+  --g-A-bg:#064e3b;--g-A-fg:#6ee7b7;--g-A-bd:#065f46;
+  --g-B-bg:#052e16;--g-B-fg:#86efac;--g-B-bd:#14532d;
+  --g-C-bg:#422006;--g-C-fg:#fde68a;--g-C-bd:#92400e;
+  --g-D-bg:#431407;--g-D-fg:#fdba74;--g-D-bd:#9a3412;
+  --g-E-bg:#450a0a;--g-E-fg:#fca5a5;--g-E-bd:#7f1d1d;
+  --g-Em-bg:#4a044e;--g-Em-fg:#f0abfc;--g-Em-bd:#701a75;
+  --g-F-bg:#450a0a;--g-F-fg:#f87171;--g-F-bd:#7f1d1d;
+  --g-K-bg:#2e1065;--g-K-fg:#c4b5fd;--g-K-bd:#4c1d95;
+  --g-X-bg:#1f2937;--g-X-fg:#9ca3af;--g-X-bd:#374151;
+}
+
+[data-theme="modern-dark"]{
+  --sidebar-w:260px;--header-h:56px;--radius:10px;--radius-lg:14px;
+}
+
+[data-theme="dark"] body,
+[data-theme="modern-dark"] body,
+[data-theme="dark"] input,
+[data-theme="modern-dark"] input,
+[data-theme="dark"] select,
+[data-theme="modern-dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="modern-dark"] textarea{
+  color-scheme:dark;
+}
+
+/* Dark topbar */
+[data-theme="dark"] .topbar,[data-theme="modern-dark"] .topbar{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  color:var(--text);
+}
+[data-theme="dark"] .topbar-logo,[data-theme="modern-dark"] .topbar-logo{
+  color:var(--accent);font-weight:700;
+}
+[data-theme="dark"] .topbar-actions .btn-white,
+[data-theme="modern-dark"] .topbar-actions .btn-white{
+  background:var(--surface2);color:var(--text);border:1px solid var(--border);
+}
+[data-theme="dark"] .btn-amber,[data-theme="modern-dark"] .btn-amber{
+  background:var(--accent);color:#000;
+}
+
+/* Dark inputs */
+[data-theme="dark"] input,[data-theme="modern-dark"] input,
+[data-theme="dark"] select,[data-theme="modern-dark"] select,
+[data-theme="dark"] textarea,[data-theme="modern-dark"] textarea{
+  background:var(--surface2)!important;color:var(--text)!important;
+  border-color:var(--border)!important;
+}
+
+/* Dark stab active */
+[data-theme="dark"] .stab.active,[data-theme="modern-dark"] .stab.active{
+  color:var(--accent);border-bottom-color:var(--accent);
+}
+
+/* Dark modal */
+[data-theme="dark"] .modal,[data-theme="modern-dark"] .modal{
+  background:var(--surface);color:var(--text);
+}
+
+/* Dark picker */
+[data-theme="dark"] .picker,[data-theme="modern-dark"] .picker{
+  background:var(--surface);
+}
+
+/* Dark grade buttons */
+[data-theme="dark"] .go:hover,[data-theme="modern-dark"] .go:hover{
+  filter:brightness(1.2);
+}
+
 /* Smooth transitions on theme switch */
 body{transition:background .2s,color .2s;}
 .topbar,.sidebar,.card,.modal,.picker{transition:background .2s,box-shadow .2s,border-color .2s;}
@@ -811,7 +894,7 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
     <div class="sb-section">Inställningar</div>
     <div style="padding:0 7px 7px;display:flex;flex-direction:column;gap:3px">
       <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" onclick="openGradeSettings()">🎨 Betygsvärden</button>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" id="theme-toggle-btn" onclick="toggleTheme()">🎨 Tema: <span id="theme-status">Klassisk</span></button>
+      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" id="theme-toggle-btn" onclick="cycleTheme()">🎨 Tema: <span id="theme-status">Klassisk</span></button>
       <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" onclick="openAbsenceSettings()">⚠ Frånvarogräns</button>
       <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" onclick="showDataPath()">📁 Datafil</button>
       <div class="news-btn-wrap">
@@ -3742,18 +3825,26 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
-    version: 'v100',
+    version: 'v101',
     label: 'Senaste',
     date: '2026-03',
     items: [
+      { type:'added', icon:'🌙', text:'Darkmode — fyra teman att välja mellan: Klassisk, Modern, Mörkt och Modern mörkt. Klicka på "🎨 Tema" i sidopanelen för att byta.' },
+    ]
+  },
+  {
+    version: 'v100',
+    label: '',
+    date: '2026-03',
+    items: [
       { type:'added', icon:'🎓', text:'SO Bedömning — stabil version 1.0. Betygssättning, helhetsbedömningar, omprov, statistik, kursplan (LGR22), anpassningar och mycket mer.' },
-      { type:'added', icon:'🔄', text:'Automatiska uppdateringar via GitHub — nya funktioner och förbättringar levereras direkt utan ominstallation.' },
+      { type:'added', icon:'🔄', text:'Automatiska uppdateringar via GitHub — nya funktioner levereras direkt utan ominstallation.' },
       { type:'added', icon:'🎨', text:'Välj mellan klassiskt och modernt tema under Inställningar.' },
     ]
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v100';
+const LATEST_VERSION = 'v101';
 
 function openReleaseNotes(){
   renderReleaseList();
@@ -5894,21 +5985,33 @@ function clearData(what){
 /* ================================================================
    TEMA — Klassisk / Modern
 ================================================================ */
-function applyTheme(theme){
-  document.documentElement.setAttribute('data-theme', theme==='modern'?'modern':'');
+const THEMES=[
+  {key:'classic',     label:'Klassisk',     attr:''},
+  {key:'modern',      label:'Modern',       attr:'modern'},
+  {key:'dark',        label:'Mörkt',        attr:'dark'},
+  {key:'modern-dark', label:'Modern mörkt', attr:'modern-dark'},
+];
+
+function applyTheme(themeKey){
+  const t=THEMES.find(x=>x.key===themeKey)||THEMES[0];
+  document.documentElement.setAttribute('data-theme', t.attr);
   const btn=document.getElementById('theme-status');
-  if(btn)btn.textContent=theme==='modern'?'Modern':'Klassisk';
+  if(btn)btn.textContent=t.label;
 }
 
-function toggleTheme(){
+function cycleTheme(){
   const current=db.settings?.theme||'classic';
-  const next=current==='modern'?'classic':'modern';
+  const idx=THEMES.findIndex(x=>x.key===current);
+  const next=THEMES[(idx+1)%THEMES.length];
   if(!db.settings)db.settings={};
-  db.settings.theme=next;
-  applyTheme(next);
+  db.settings.theme=next.key;
+  applyTheme(next.key);
   onChange();
-  showToast('Tema bytt till '+(next==='modern'?'Modern':'Klassisk'));
+  showToast('Tema: '+next.label);
 }
+
+// Keep old toggleTheme for compatibility
+function toggleTheme(){cycleTheme();}
 
 function initTheme(){
   const theme=db.settings?.theme||'classic';
