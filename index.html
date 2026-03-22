@@ -930,10 +930,11 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
     <span class="unsaved-label" id="unsaved-label">Osparade ändringar</span>
     <span class="unsaved-dot"  id="unsaved-dot"></span>
     <button class="btn btn-amber btn-sm" id="save-btn" onclick="manualSave()" style="display:none">💾 Spara</button>
-    <button class="btn btn-white btn-sm" onclick="openModal('modal-curriculum-lib')">📚 Kursplan</button>
     <button class="btn btn-white btn-sm" onclick="openModal('modal-compare')">📊 Statistik</button>
-    <button class="btn btn-white btn-sm" onclick="doExport()">⬇ Exportera</button>
-    <button class="btn btn-white btn-sm" onclick="doImport()">⬆ Importera</button>
+    <button class="btn btn-white btn-sm" onclick="openSettings()" id="settings-btn" title="Inställningar" style="position:relative">
+      ⚙ Inställningar
+      <span class="news-unread" id="news-unread-dot" style="top:2px;right:2px"></span>
+    </button>
   </div>
 </div>
 
@@ -945,22 +946,7 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
     <div style="padding:0 7px 5px">
       <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:5px" onclick="openNewClassModal()">+ Ny klass</button>
     </div>
-    <div style="height:1px;background:var(--border-soft);margin:7px 11px"></div>
-    <div class="sb-section">Inställningar</div>
-    <div style="padding:0 7px 7px;display:flex;flex-direction:column;gap:3px">
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" onclick="openGradeSettings()">🎨 Betygsvärden</button>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" id="theme-toggle-btn" onclick="cycleTheme()">🎨 Tema: <span id="theme-status">Klassisk</span></button>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" onclick="openAbsenceSettings()">⚠ Frånvarogräns</button>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" onclick="showDataPath()">📁 Datafil</button>
-      <div class="news-btn-wrap">
-        <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;width:100%" onclick="openReleaseNotes()">🆕 Nyheter i appen</button>
-        <span class="news-unread" id="news-unread-dot"></span>
-      </div>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" onclick="openChangeLog()">📋 Händelselogg</button>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" id="adapt-toggle-btn" onclick="toggleAdaptationsEnabled()">🔧 Anpassningar: <span id="adapt-status">Av</span></button>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" onclick="openGradeRecommSettings()">💡 Rekommendationer: <span id="recom-status">På</span></button>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" onclick="openCurriculumSettings()">📚 Kursplan: <span id="curr-status">På</span></button>
-    </div>
+
   </aside>
 
   <div class="content">
@@ -1065,7 +1051,10 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
 <!-- GRADE SETTINGS -->
 <div class="modal-overlay" id="modal-grade-settings">
   <div class="modal" onclick="event.stopPropagation()">
-    <h2>🎨 Betygsvärden</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-grade-settings');openSettings();showSettingsTab('betyg')">← Inställningar</button>
+      <h2 style="margin:0">🎨 Betygsvärden</h2>
+    </div>
     <p class="text-sm text-muted mb-2">Standardbetygen A–F och Komp är alltid med. Lägg till egna nedan.</p>
     <div class="custom-grade-list" id="custom-grade-list"></div>
     <div class="cg-add-row">
@@ -1262,7 +1251,10 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
 <!-- CHANGE LOG MODAL -->
 <div class="modal-overlay" id="modal-changelog">
   <div class="modal log-modal" onclick="event.stopPropagation()">
-    <h2>📋 Ändringslogg</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-changelog');openSettings();showSettingsTab('data')">← Inställningar</button>
+      <h2 style="margin:0">📋 Ändringslogg</h2>
+    </div>
     <div class="log-filters">
       <select id="log-filter-class" onchange="renderChangeLog()"><option value="">Alla klasser</option></select>
       <select id="log-filter-type" onchange="renderChangeLog()">
@@ -1339,6 +1331,7 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
 <div class="modal-overlay" id="modal-curriculum-lib">
   <div class="modal" style="width:860px;max-height:92vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-curriculum-lib');openSettings();showSettingsTab('data')">← Inställningar</button>
       <h2 style="margin:0">📚 Kursplan (LGR22)</h2>
       <select id="curr-lib-select" onchange="showCurrLibTab(this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.85rem;background:#fff;flex:1;max-width:280px">
         <!-- populated by openModal_curriculumLib -->
@@ -3912,6 +3905,33 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v108',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed',    icon:'🔧', text:'Omprov/riskzon-val visas nu direkt i Inställningar > Betyg — inga försvunna inställningar.' },
+      { type:'fixed',    icon:'🔧', text:'Dubbletten av kursplansbibliotek i Inställningar > Data borttagen.' },
+      { type:'added',    icon:'←',  text:'Tillbaka-knapp i kursplansbibliotek, betygsvärden och händelselogg — enkelt att navigera tillbaka till Inställningar.' },
+    ]
+  },
+  {
+    version: 'v107',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'improved', icon:'⚙', text:'Topbaren renodlad — bara Statistik och Inställningar. Export, Import och Kursplan finns nu under Inställningar > Data.' },
+      { type:'fixed',    icon:'🔧', text:'Betygsinställningar visas nu direkt i Inställningar > Betyg — ingen separat modal behövs längre.' },
+    ]
+  },
+  {
+    version: 'v106',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'improved', icon:'⚙', text:'Inställningar är nu en dedikerad knapp (⚙) i topbaren — organiserade i flikar: Utseende, Betyg, Funktioner, Data och Om. Sidopanelen är nu renodlad för klasshantering.' },
+    ]
+  },
+  {
     version: 'v105',
     label: 'Senaste',
     date: '2026-03',
@@ -3966,15 +3986,11 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v105';
+const LATEST_VERSION = 'v108';
 
 function openReleaseNotes(){
-  renderReleaseList();
-  // Mark as read
-  db.settings.lastSeenVersion = LATEST_VERSION;
-  onChange();
-  document.getElementById('news-unread-dot').classList.remove('show');
-  openModal('modal-release-notes');
+  openSettings();
+  showSettingsTab('om');
 }
 
 function renderReleaseList(){
@@ -4009,9 +4025,9 @@ function renderReleaseList(){
 
 function checkUnreadReleaseNotes(){
   const seen = db.settings?.lastSeenVersion;
-  if(seen !== LATEST_VERSION){
-    document.getElementById('news-unread-dot').classList.add('show');
-  }
+  const show = seen !== LATEST_VERSION;
+  document.getElementById('news-unread-dot')?.classList.toggle('show', show);
+  document.getElementById('news-unread-dot-modal')?.classList.toggle('show', show);
 }
 
 
@@ -5899,9 +5915,7 @@ function updateCurrStatusBtn(){
 }
 
 function updateCurrTopbarBtn(){
-  // Find the curriculum topbar button and hide/show it
-  const btns=document.querySelectorAll('.topbar-actions .btn-white');
-  btns.forEach(b=>{if(b.textContent.includes('Kursplan'))b.style.display=db.settings?.currDisabled?'none':'';});
+  // Kursplansknappen är borttagen från topbaren — finns nu under Inställningar > Data
 }
 
 /* ================================================================
@@ -6239,6 +6253,201 @@ function showUpdateBanner(version){
   document.body.appendChild(banner);
 }
 
+
+/* ================================================================
+   INSTÄLLNINGAR — modal med flikar
+================================================================ */
+function openSettings(){
+  showSettingsTab('utseende');
+  openModal('modal-settings');
+  // Synka news-dot
+  const dot=document.getElementById('news-unread-dot-modal');
+  const mainDot=document.getElementById('news-unread-dot');
+  if(dot&&mainDot)dot.className=mainDot.className;
+}
+
+function showSettingsTab(tab){
+  document.querySelectorAll('[id^="stab-settings-"]').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('stab-settings-'+tab);
+  if(btn)btn.classList.add('active');
+  const body=document.getElementById('settings-tab-body');
+  if(!body)return;
+
+  if(tab==='utseende')    body.innerHTML=renderSettingsUtseende();
+  else if(tab==='betyg')  {body.innerHTML=renderSettingsBetyg();setTimeout(()=>{renderCustomGradeList();renderGradeToggleLists();},10);}
+  else if(tab==='funktioner') body.innerHTML=renderSettingsFunktioner();
+  else if(tab==='data')   body.innerHTML=renderSettingsData();
+  else if(tab==='om')     body.innerHTML=renderSettingsOm();
+}
+
+function renderSettingsUtseende(){
+  const theme=db.settings?.theme||'classic';
+  return`<div style="display:flex;flex-direction:column;gap:14px">
+    <div class="fg">
+      <label class="fg-label">🎨 Tema</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+        ${THEMES.map(t=>`
+          <button onclick="setTheme('${t.key}')" style="
+            padding:8px 16px;border-radius:8px;border:2px solid ${theme===t.key?'var(--accent)':'var(--border)'};
+            background:${theme===t.key?'var(--accent-lt)':'var(--surface2)'};
+            color:${theme===t.key?'var(--accent-dk)':'var(--text)'};
+            font-weight:${theme===t.key?700:400};cursor:pointer;font-family:inherit;font-size:.82rem;
+            transition:all .15s"
+          >${t.label}</button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function setTheme(key){
+  if(!db.settings)db.settings={};
+  db.settings.theme=key;
+  applyTheme(key);
+  onChange();
+  // Re-render utseende tab to update active state
+  showSettingsTab('utseende');
+  showToast('Tema: '+THEMES.find(t=>t.key===key)?.label);
+}
+
+function renderSettingsBetyg(){
+  return`<div style="display:flex;flex-direction:column;gap:16px">
+    <div class="fg">
+      <label class="fg-label">🎨 Betygsvärden</label>
+      <p class="text-xs text-muted mb-2">Standardbetygen A–F och Komp är alltid med. Lägg till egna nedan.</p>
+      <div class="custom-grade-list" id="custom-grade-list"></div>
+      <div class="cg-add-row">
+        <input type="text" id="cg-label" placeholder='"EJ"'>
+        <input type="text" id="cg-name"  placeholder='"Ej närvarande"'>
+        <input type="color" id="cg-color" value="#607d8b">
+        <button class="btn btn-primary btn-sm" onclick="addCustomGrade()">+ Lägg till</button>
+      </div>
+
+    </div>
+    <div style="border-top:1px solid var(--border-soft);padding-top:14px">
+      <label class="fg-label">🔄 Kräver omprov/komplettering</label>
+      <p class="text-xs text-muted mb-2">Välj vilka betyg som flaggar för omprov automatiskt.</p>
+      <div id="retake-grade-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+    <div style="border-top:1px solid var(--border-soft);padding-top:14px">
+      <label class="fg-label">⚠ Riskzon</label>
+      <p class="text-xs text-muted mb-2">Välj vilka betyg som markeras i riskzon och statistik.</p>
+      <div id="risk-grade-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+    <div style="border-top:1px solid var(--border-soft);padding-top:14px">
+      <label class="fg-label">⚠ Frånvarogräns (ogiltig frånvaro)</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+        <input type="number" id="absence-limit-inp" value="${db.absenceLimit||15}" min="1" max="200"
+          style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.85rem">
+        <span class="text-sm text-muted">timmar — elever över gränsen markeras i riskzon</span>
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="saveAbsenceLimitInline()">Spara</button>
+    </div>
+  </div>`;
+}
+
+function saveAbsenceLimitInline(){
+  const val=parseInt(document.getElementById('absence-limit-inp')?.value)||15;
+  db.absenceLimit=val;onChange();showToast('Frånvarogräns satt till '+val+'h');
+}
+
+function renderSettingsFunktioner(){
+  const adaptOn=!db.settings?.adaptationsDisabled;
+  const recomH=!db.settings?.recomHelhetsDisabled;
+  const recomF=!db.settings?.recomFinalDisabled;
+  const currOn=!db.settings?.currDisabled;
+  const currCritOn=!db.settings?.currCritDisabled;
+
+  const toggle=(id,label,desc,checked,fn)=>`
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-soft)">
+      <div>
+        <div style="font-size:.84rem;font-weight:500">${label}</div>
+        <div style="font-size:.76rem;color:var(--text-muted);margin-top:2px">${desc}</div>
+      </div>
+      <label style="display:flex;align-items:center;cursor:pointer;flex-shrink:0">
+        <input type="checkbox" id="${id}" ${checked?'checked':''} onchange="${fn}" style="width:16px;height:16px;accent-color:var(--accent)">
+      </label>
+    </div>`;
+
+  return`<div>
+    ${toggle('fn-adapt','🔧 Anpassningar','Visa anpassningsfunktioner per elev och ämne.',adaptOn,"toggleAdaptationsEnabled();showSettingsTab('funktioner')")}
+    ${toggle('fn-recom-h','💡 Rekommendation vid helhetsbedömning','Föreslå betyg baserat på tidigare moment i arbetsområdet.',recomH,"toggleRecomHelhets();showSettingsTab('funktioner')")}
+    ${toggle('fn-recom-f','💡 Rekommendation vid terminsbetyg','Föreslå terminsbetyg baserat på helhetsbedömningar.',recomF,"toggleRecomFinal();showSettingsTab('funktioner')")}
+    ${toggle('fn-curr','📚 Kursplansbibliotek (LGR22)','Visa kursplansknapp och CC-kopplingar per arbetsområde.',currOn,"toggleCurrEnabled();showSettingsTab('funktioner')")}
+    ${toggle('fn-curr-crit','📚 Betygskriterier i picker','Visa betygskriterier att bocka av i helhetsbedömnings-pickern.',currCritOn&&currOn,"toggleCurrCritEnabled();showSettingsTab('funktioner')")}
+  </div>`;
+}
+
+function toggleRecomHelhets(){
+  if(!db.settings)db.settings={};
+  db.settings.recomHelhetsDisabled=!db.settings.recomHelhetsDisabled;
+  updateRecomBtn();onChange();
+}
+function toggleRecomFinal(){
+  if(!db.settings)db.settings={};
+  db.settings.recomFinalDisabled=!db.settings.recomFinalDisabled;
+  updateRecomBtn();onChange();
+}
+function toggleCurrEnabled(){
+  if(!db.settings)db.settings={};
+  db.settings.currDisabled=!db.settings.currDisabled;
+  updateCurrStatusBtn();updateCurrTopbarBtn();onChange();
+}
+function toggleCurrCritEnabled(){
+  if(!db.settings)db.settings={};
+  db.settings.currCritDisabled=!db.settings.currCritDisabled;
+  onChange();
+}
+
+function renderSettingsData(){
+  const path=isElectron?'Hämtar...':'localStorage';
+  return`<div style="display:flex;flex-direction:column;gap:14px">
+    <div class="fg">
+      <label class="fg-label">📁 Datafil</label>
+      <p class="text-xs text-muted">All data sparas lokalt på din dator.</p>
+      <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="showDataPath()">📁 Visa sökväg</button>
+        <button class="btn btn-outline btn-sm" onclick="doExport()">⬇ Exportera säkerhetskopia</button>
+        <button class="btn btn-outline btn-sm" onclick="doImport()">⬆ Importera säkerhetskopia</button>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--border-soft);padding-top:14px" class="fg">
+      <label class="fg-label">📋 Händelselogg</label>
+      <p class="text-xs text-muted">Logg över alla betygsändringar och elevhändelser.</p>
+      <button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="closeModal('modal-settings');openChangeLog()">Öppna händelselogg →</button>
+    </div>
+    <div style="border-top:1px solid var(--border-soft);padding-top:14px" class="fg">
+      <label class="fg-label" style="color:var(--red)">🗑 Rensa data</label>
+      <p class="text-xs text-muted">Rensa betyg, omprov, anteckningar eller all data för en klass.</p>
+      <button class="btn btn-outline btn-sm" style="margin-top:6px;border-color:var(--red);color:var(--red)" 
+        onclick="closeModal('modal-settings');showSubject('setup');setTimeout(()=>document.getElementById('clear-panel')?.scrollIntoView({behavior:'smooth'}),300)">
+        Öppna rensningspanel →
+      </button>
+    </div>
+    <div style="border-top:1px solid var(--border-soft);padding-top:14px" class="fg">
+      <label class="fg-label">📚 Kursplansbibliotek (LGR22)</label>
+      <p class="text-xs text-muted">Koppla arbetsområden till centralt innehåll och betygskriterier.</p>
+      <button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="closeModal('modal-settings');setTimeout(()=>openModal('modal-curriculum-lib'),150)">Öppna kursplansbibliotek →</button>
+    </div>
+    <div style="border-top:1px solid var(--border-soft);padding-top:14px" class="fg">
+      <label class="fg-label">🔄 Uppdateringar</label>
+      <p class="text-xs text-muted">Appen uppdateras automatiskt via GitHub.</p>
+      <button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="checkHotUpdate(true)">Sök efter uppdatering</button>
+    </div>
+  </div>`;
+}
+
+function renderSettingsOm(){
+  // Mark as read
+  if(db.settings)db.settings.lastSeenVersion=LATEST_VERSION;
+  onChange();
+  document.getElementById('news-unread-dot')?.classList.remove('show');
+  document.getElementById('news-unread-dot-modal')?.classList.remove('show');
+
+  renderReleaseList();
+  return`<div id="release-list"></div>`;
+}
+
+
 /* ================================================================
    BOOT
 ================================================================ */
@@ -6298,5 +6507,34 @@ function showUpdateBanner(version){
   if(!db.adaptations)db.adaptations={};
 })();
 </script>
+
+<!-- ═══════════════ INSTÄLLNINGAR MODAL ═══════════════ -->
+<div class="modal-overlay" id="modal-settings" onclick="if(event.target===this)closeModal('modal-settings')">
+  <div class="modal" style="width:560px" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="margin:0">⚙ Inställningar</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settings')">✕</button>
+    </div>
+
+    <!-- Flikar -->
+    <div style="display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:18px">
+      <button class="stab active" id="stab-settings-utseende"  onclick="showSettingsTab('utseende')">🎨 Utseende</button>
+      <button class="stab"        id="stab-settings-betyg"     onclick="showSettingsTab('betyg')">📊 Betyg</button>
+      <button class="stab"        id="stab-settings-funktioner"onclick="showSettingsTab('funktioner')">🔧 Funktioner</button>
+      <button class="stab"        id="stab-settings-data"      onclick="showSettingsTab('data')">💾 Data</button>
+      <button class="stab"        id="stab-settings-om"        onclick="showSettingsTab('om')" style="position:relative">
+        🆕 Om
+        <span class="news-unread" id="news-unread-dot-modal"></span>
+      </button>
+    </div>
+
+    <div id="settings-tab-body"></div>
+
+    <div class="modal-footer" style="margin-top:16px">
+      <button class="btn btn-primary" onclick="closeModal('modal-settings')">Stäng</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
