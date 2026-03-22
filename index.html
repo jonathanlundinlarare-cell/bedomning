@@ -924,6 +924,23 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
 .flex{display:flex}.items-center{align-items:center}.gap-2{gap:8px}.gap-3{gap:12px}
 .ml-auto{margin-left:auto}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mb-2{margin-bottom:8px}
 .text-sm{font-size:.8rem}.text-xs{font-size:.71rem}.text-muted{color:var(--text-muted)}
+
+/* ═══ FÖRHANDSVISNING MODAL ════════════════════════════════════════ */
+.preview-overlay{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.55);
+  display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.preview-overlay.open{display:flex}
+.preview-wrap{background:#e0e0e0;border-radius:var(--radius-lg);width:100%;max-width:920px;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);display:flex;flex-direction:column;max-height:92vh}
+.preview-head{display:flex;align-items:center;gap:10px;padding:12px 16px;
+  background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  border-bottom:1px solid var(--border);flex-shrink:0}
+.preview-head-title{font-weight:700;font-size:.9rem;flex:1;color:var(--text)}
+.preview-content{overflow-y:auto;padding:16px;flex:1}
+.preview-page{background:#fff;margin:0 auto 16px;padding:15mm;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);font-family:Arial,sans-serif;font-size:9pt;color:#000;
+  width:210mm;min-height:100px}
+.preview-page.landscape{width:297mm;padding:10mm 12mm}
+@media(max-width:960px){.preview-page,.preview-page.landscape{width:100%}}
 </style>
 </head>
 <body>
@@ -2233,13 +2250,7 @@ function printStudentView(){
     document.querySelectorAll('.sv-yr6').forEach(el=>el.style.background='#27ae60');
     window.onload=()=>{window.print();window.close();}
   <\/script></body></html>`;
-  if(isElectron){
-    printViaIframe(_epHtml);return;
-  }
-  const printWin=window.open('','_blank');
-  if(!printWin){showToast('Popup blockerad');return;}
-  printWin.document.write(_epHtml);
-  printWin.document.close();
+  openPreview('Förhandsvisning',_epHtml,false);
 }
 
 /* ================================================================
@@ -2288,13 +2299,7 @@ function printClassPDF(sk,yr){
   <table><thead><tr>${headerCells}</tr><tr>${momentCells}</tr></thead><tbody>${rows}</tbody></table>
   <script>window.onload=()=>{window.print();window.close();}<\/script>
   </body></html>`;
-  if(isElectron){
-    printViaIframe(_epHtml);return;
-  }
-  const printWin=window.open('','_blank');
-  if(!printWin){showToast('Popup blockerad');return;}
-  printWin.document.write(_epHtml);
-  printWin.document.close();
+  openPreview('Förhandsvisning',_epHtml,false);
 }
 
 /* ================================================================
@@ -2484,13 +2489,7 @@ function printOversiktPDF(yr){
   <h3>Skrivet ut ${todayStr()} · Frånvarogräns ogiltig: ≥${db.absenceLimit||15}h (markeras rött)</h3>
   <table><thead><tr>${hdr}</tr><tr>${termRow}</tr></thead><tbody>${rows}</tbody></table>
   <script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`;
-  if(isElectron){
-    printViaIframe(_epHtml);return;
-  }
-  const printWin=window.open('','_blank');
-  if(!printWin){showToast('Popup blockerad');return;}
-  printWin.document.write(_epHtml);
-  printWin.document.close();
+  openPreview('Förhandsvisning',_epHtml,false);
 }
 
 function saveGenNote(sid,yr){const c=currentClass();if(!c)return;const ta=document.getElementById(`gnote_${sid}_${yr}`);if(!ta)return;const val=ta.value.trim();if(val)c.notes['gen_'+sid+'_'+yr]=val;else delete c.notes['gen_'+sid+'_'+yr];onChange();showToast('Anteckning sparad');}
@@ -2767,21 +2766,7 @@ function renderStatPrint(){
 function printStatsReport(){showStatTab('print');}
 
 function openPrintWin(title,body,landscape=false){
-  const orient=landscape?'landscape':'portrait';
-  const margH=landscape?'8mm':'12mm';
-  const margW=landscape?'8mm':'15mm';
-  const fullHtml=buildPrintHtml(title,body,orient,margH,margW);
-
-  // I Electron: använd dold iframe för utskrift — window.open fungerar inte i packad app
-  if(isElectron){
-    printViaIframe(fullHtml);
-    return;
-  }
-  // Webbläsarfallback
-  const w=window.open('','_blank');
-  if(!w){showToast('Popup blockerad — tillåt popup-fönster i webbläsaren');return;}
-  w.document.write(fullHtml);
-  w.document.close();
+  openPreview(title,body,landscape);
 }
 
 function buildPrintHtml(title,body,orient,margH,margW){
@@ -4003,6 +3988,14 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v121',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'improved', icon:'🖨', text:'Rapporter visas nu i förhandsvisning i appen — granska och klicka sedan Skriv ut. Fungerar i både webbläsare och .exe.' },
+    ]
+  },
+  {
     version: 'v120',
     label: 'Senaste',
     date: '2026-03',
@@ -4181,7 +4174,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v120';
+const LATEST_VERSION = 'v121';
 
 function openReleaseNotes(){
   openSettings();
@@ -6714,6 +6707,53 @@ function printViaIframe(html){
 /* ================================================================
    BOOT
 ================================================================ */
+
+/* ================================================================
+   FÖRHANDSVISNING
+================================================================ */
+let _pvHtml='', _pvLandscape=false;
+
+function openPreview(title, body, landscape){
+  _pvHtml=body; _pvLandscape=!!landscape;
+  document.getElementById('preview-title').textContent=title||'Förhandsvisning';
+  const cls=landscape?'preview-page landscape':'preview-page';
+  document.getElementById('preview-content').innerHTML=
+    '<div class="'+cls+'"><style>'+
+    'table{border-collapse:collapse;width:100%;font-size:8pt}'+
+    'th{background:#eee;padding:3px 5px;border:1px solid #ccc;font-size:7.5pt;white-space:nowrap}'+
+    'td{padding:3px 4px;border:1px solid #ddd}'+
+    'h1{font-size:13pt;margin:0 0 3px}h2{font-size:11pt;margin:8px 0 3px}h3{font-size:9.5pt;margin:5px 0 2px;color:#333}'+
+    '.meta{font-size:7.5pt;color:#666;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #ddd}'+
+    '.dist-bar{height:12px;display:flex;border-radius:3px;overflow:hidden;margin:2px 0}'+
+    '.dist-seg{display:flex;align-items:center;justify-content:center;font-size:6pt;font-weight:700;color:#fff}'+
+    '.page-break{border-top:2px dashed #bbb;margin:18px 0;padding-top:18px}'+
+    '.no-data{color:#999;font-style:italic}'+
+    '.risk-tag{display:inline-block;padding:0 4px;border-radius:5px;font-size:7pt;font-weight:700;margin:1px}'+
+    '</style>'+body+'</div>';
+  document.getElementById('preview-overlay').classList.add('open');
+}
+
+function closePreview(){
+  document.getElementById('preview-overlay').classList.remove('open');
+  document.getElementById('preview-content').innerHTML='';
+}
+
+function printCurrentPreview(){
+  const orient=_pvLandscape?'landscape':'portrait';
+  const margH=_pvLandscape?'8mm':'12mm';
+  const margW=_pvLandscape?'8mm':'15mm';
+  const html=buildPrintHtml(
+    document.getElementById('preview-title').textContent,
+    _pvHtml, orient, margH, margW
+  );
+  if(isElectron){ printViaIframe(html); }
+  else {
+    const w=window.open('','_blank');
+    if(!w){showToast('Popup blockerad');return;}
+    w.document.write(html); w.document.close();
+  }
+}
+
 (async function boot(){
   // ── Electron window focus recovery ─────────────────────────────────
   // When OS gives focus back (after minimize/alt-tab), Electron sometimes
@@ -6799,5 +6839,17 @@ function printViaIframe(html){
   </div>
 </div>
 
+
+<!-- FÖRHANDSVISNING -->
+<div class="preview-overlay" id="preview-overlay" onclick="if(event.target===this)closePreview()">
+  <div class="preview-wrap" onclick="event.stopPropagation()">
+    <div class="preview-head">
+      <span class="preview-head-title" id="preview-title">Förhandsvisning</span>
+      <button class="btn btn-primary btn-sm" onclick="printCurrentPreview()">🖨 Skriv ut</button>
+      <button class="btn btn-ghost btn-sm" onclick="closePreview()">✕</button>
+    </div>
+    <div class="preview-content" id="preview-content"></div>
+  </div>
+</div>
 </body>
 </html>
