@@ -1052,7 +1052,7 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
 <div class="modal-overlay" id="modal-grade-settings">
   <div class="modal" onclick="event.stopPropagation()">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-grade-settings');openSettings();showSettingsTab('betyg')">← Inställningar</button>
+      <button class="btn btn-ghost btn-sm" onclick="openSettings('betyg')">← Inställningar</button>
       <h2 style="margin:0">🎨 Betygsvärden</h2>
     </div>
     <p class="text-sm text-muted mb-2">Standardbetygen A–F och Komp är alltid med. Lägg till egna nedan.</p>
@@ -1252,7 +1252,7 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
 <div class="modal-overlay" id="modal-changelog">
   <div class="modal log-modal" onclick="event.stopPropagation()">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-changelog');openSettings();showSettingsTab('data')">← Inställningar</button>
+      <button class="btn btn-ghost btn-sm" onclick="openSettings('data')">← Inställningar</button>
       <h2 style="margin:0">📋 Ändringslogg</h2>
     </div>
     <div class="log-filters">
@@ -1331,7 +1331,7 @@ td.td-with-omprov{vertical-align:top;padding-top:4px!important}
 <div class="modal-overlay" id="modal-curriculum-lib">
   <div class="modal" style="width:860px;max-height:92vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-curriculum-lib');openSettings();showSettingsTab('data')">← Inställningar</button>
+      <button class="btn btn-ghost btn-sm" onclick="openSettings('data')">← Inställningar</button>
       <h2 style="margin:0">📚 Kursplan (LGR22)</h2>
       <select id="curr-lib-select" onchange="showCurrLibTab(this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.85rem;background:#fff;flex:1;max-width:280px">
         <!-- populated by openModal_curriculumLib -->
@@ -1466,6 +1466,17 @@ function isRiskGrade(g){
   const configured=db.riskGrades;
   const set=Array.isArray(configured)?configured:defaults;
   return set.includes(g);
+}
+
+// Returnerar det effektiva betyget — senaste omprovresultatet om det finns
+function effectiveGrade(cls, key, fallback){
+  // c.grades[key] is already updated after a passed omprov (saveOmprovResult does this)
+  // So the stored grade IS the effective grade — just return it
+  // Only fall back to omprovResults if for some reason grades wasn't updated
+  const stored=cls.grades[key]||fallback||'';
+  if(stored)return stored;
+  const results=(cls.omprovResults||{})[key]||[];
+  return results.length ? results[results.length-1].grade : '';
 }
 function gradeInfo(key){if(!key)return null;return allGrades().find(g=>g.key===key)||{key,label:key,bg:'var(--g-X-bg)',fg:'var(--g-X-fg)',bd:'var(--g-X-bd)',css:'gb-X',go:'go-X'};}
 function gradeCss(key){return key?(gradeInfo(key)||{css:'gb-empty'}).css:'gb-empty';}
@@ -1759,8 +1770,11 @@ function renderGradeTab(cls,sk){
 
   const allG=[],retakeCells=[];
   for(const s of cls.students) for(let ai=0;ai<areas.length;ai++) for(let mi=0;mi<areas[ai].moments.length;mi++){
-    const key=gKey(s.id,sk,yr,ai,mi);const g=cls.grades[key]||'';
-    if(g)allG.push(g);if(cls.retakes[key])retakeCells.push({sname:s.name,area:areas[ai].name,moment:areas[ai].moments[mi],grade:g});
+    const key=gKey(s.id,sk,yr,ai,mi);
+    const gOrig=cls.grades[key]||'';
+    const g=effectiveGrade(cls,key,gOrig); // visa senaste omprovresultat
+    if(g)allG.push(g);
+    if(cls.retakes[key])retakeCells.push({sname:s.name,area:areas[ai].name,moment:areas[ai].moments[mi],grade:g});
   }
 
   let aHdr=`<th class="th-name">Elev</th>`,mHdr=`<th class="th-name"></th>`;
@@ -1891,7 +1905,8 @@ function toggleAccordion(sk,accId){
 function openPicker(sid,sk,yr,ai,mi,sname,aname,mname){
   _pt={sid,sk,yr:parseInt(yr),ai:parseInt(ai),mi:parseInt(mi)};_pickMode='grade';_pendingGrade=null;
   const c=currentClass();const key=gKey(sid,sk,yr,ai,mi);
-  const cur=c.grades[key]||'';
+  const gOrig=c.grades[key]||'';
+  const cur=effectiveGrade(c,key,gOrig); // visa senaste omprovresultat i picker
   document.getElementById('picker-title').textContent=esc(sname);
   document.getElementById('picker-sub').textContent=`ÅK ${yr} · ${esc(aname)} · ${esc(mname)}`;
   document.getElementById('picker-note').value=c.notes[key]||'';
@@ -2017,6 +2032,16 @@ function confirmPickerGrade(){
   }
   c.grades[key]=newGrade;
   if(note)c.notes[key]=note;else delete c.notes[key];
+  // Om betyget rensas — rensa även omprovResults, retakes och history
+  if(!newGrade){
+    delete c.omprovResults[key];
+    delete c.retakes[key];
+    // Behåll historik men markera rensningen
+    if(prevGrade){
+      if(!c.history[key])c.history[key]=[];
+      c.history[key].push({from:prevGrade,to:'',note:'Betyg rensat',date:todayStr()});
+    }
+  }
   onChange();
   const overlay=document.getElementById('picker-overlay');
   if(overlay)overlay.classList.remove('open');
@@ -2534,10 +2559,17 @@ function renderStatClass(){
       const g=((c.finalGrades[s.id]||{})[sk]||{})[yr]?.[t]||'';
       if(g){allF.push(g);if(isRiskGrade(g))riskSet.add(s.id);}
     }
-    // Also flag risk from helhetsbedömningar
+    // Also flag risk from helhetsbedömningar — använd effectiveGrade
     for(const yr of YEARS){
       const hg=getHelhetsGrades(c,sk,yr);
-      for(const h of hg)if(h.sid===s.id&&(h.grade==='F'||h.grade==='E-'))riskSet.add(s.id);
+      for(const h of hg){
+        const areas2=(c.areas[sk]||{})[yr]||[];
+        const ai2=areas2.findIndex(a=>a.name===h.areaName);
+        const mi2=ai2>=0?(areas2[ai2].moments||[]).findIndex(m=>m.toLowerCase().includes('helhet')):-1;
+        const key2=ai2>=0&&mi2>=0?gKey(h.sid,sk,yr,ai2,mi2):null;
+        const effG=key2?effectiveGrade(c,key2,h.grade):h.grade;
+        if(isRiskGrade(effG))riskSet.add(s.id);
+      }
     }
   }
   const pctGood=allF.length?Math.round(allF.filter(g=>['A','B','C','D','E'].includes(g)).length/allF.length*100):0;
@@ -2658,7 +2690,8 @@ function renderStatRisk(){
       const areas=(c.areas[sk]||{})[yr]||[];
       for(let ai=0;ai<areas.length;ai++)for(let mi=0;mi<areas[ai].moments.length;mi++){
         if(!areas[ai].moments[mi].toLowerCase().includes('helhet'))continue;
-        const g=c.grades[gKey(s.id,sk,yr,ai,mi)]||'';
+        const hkey=gKey(s.id,sk,yr,ai,mi);
+        const g=effectiveGrade(c,hkey,c.grades[hkey]||''); // använd senaste omprovresultat
         if(isRiskGrade(g)){
           const def=subjectDef(sk,c);
           // Only show if no final grade yet (to avoid duplication)
@@ -2822,7 +2855,8 @@ function printRiskReport(){
       for(let ai=0;ai<areas.length;ai++)for(let mi=0;mi<areas[ai].moments.length;mi++){
         if(!areas[ai].moments[mi].toLowerCase().includes('helhet'))continue;
         const g=c.grades[gKey(s.id,sk,yr,ai,mi)]||'';
-        if(!isRiskGrade(g))continue;
+        const effG2=effectiveGrade(c,gKey(s.id,sk,yr,ai,mi),g);
+        if(!isRiskGrade(effG2))continue;
         const hasFinal=TERMS.some(t=>((c.finalGrades[s.id]||{})[sk]||{})[yr]?.[t]);
         if(!hasFinal){const def=subjectDef(sk,c);issues.push({text:`${def.name} ÅK${yr} · ${areas[ai].name} (helhetsbedömning ⚡): ${gradeLabel(g)}`,type:'early'});}
       }
@@ -3011,7 +3045,9 @@ function renderGradeToggleLists(){
   // Retake grades toggle
   const retakeEl=document.getElementById('retake-grade-list');
   const riskEl=document.getElementById('risk-grade-list');
-  if(!retakeEl||!riskEl)return;
+  if(!retakeEl||!riskEl){
+    return;
+  }
 
   const retakeSet=new Set(Array.isArray(db.retakeGrades)?db.retakeGrades:['F','K']);
   const riskSet2=new Set(Array.isArray(db.riskGrades)?db.riskGrades:['F','E-']);
@@ -3037,17 +3073,49 @@ function renderGradeToggleLists(){
 function toggleRetakeGrade(key,on){
   const defaults=['F','K'];
   if(!Array.isArray(db.retakeGrades))db.retakeGrades=[...defaults];
-  if(on){if(!db.retakeGrades.includes(key))db.retakeGrades.push(key);}
-  else{db.retakeGrades=db.retakeGrades.filter(k=>k!==key);}
-  onChange();renderGradeToggleLists();
+  if(on){
+    if(!db.retakeGrades.includes(key))db.retakeGrades.push(key);
+  } else {
+    db.retakeGrades=db.retakeGrades.filter(k=>k!==key);
+    // Rensa retake-flaggor på alla elever som har detta betyg och inget omprov påbörjat
+    for(const cls of db.classes){
+      if(!cls.retakes)continue;
+      for(const rkey of Object.keys(cls.retakes)){
+        if(!cls.retakes[rkey])continue;
+        const g=cls.grades[rkey];
+        if(g===key){
+          const results=(cls.omprovResults||{})[rkey]||[];
+          if(!results.length)delete cls.retakes[rkey];
+        }
+      }
+    }
+  }
+  onChange();
+  // Rendera om tabellen direkt så omprov-ikoner uppdateras
+  try{renderSubject();}catch(e){}
+  // Uppdatera inställningsfliken
+  if(document.getElementById('stab-settings-betyg')?.classList.contains('active')){
+    const body=document.getElementById('settings-tab-body');
+    if(body){body.innerHTML=renderSettingsBetyg();setTimeout(renderCustomGradeList,20);}
+  } else {
+    renderGradeToggleLists();
+  }
+  showToast(on?`${gradeLabel(key)} kräver nu omprov`:`${gradeLabel(key)} kräver inte längre omprov`);
 }
+
 
 function toggleRiskGrade(key,on){
   const defaults=['F','E-'];
   if(!Array.isArray(db.riskGrades))db.riskGrades=[...defaults];
   if(on){if(!db.riskGrades.includes(key))db.riskGrades.push(key);}
   else{db.riskGrades=db.riskGrades.filter(k=>k!==key);}
-  onChange();renderGradeToggleLists();
+  onChange();
+  if(document.getElementById('stab-settings-betyg')?.classList.contains('active')){
+    const body=document.getElementById('settings-tab-body');
+    if(body){body.innerHTML=renderSettingsBetyg();setTimeout(renderCustomGradeList,20);}
+  } else {
+    renderGradeToggleLists();
+  }
 }
 
 function addCustomGrade(){const key=document.getElementById('cg-label').value.trim();const label=document.getElementById('cg-name').value.trim()||key;const color=document.getElementById('cg-color').value;if(!key){alert('Ange en beteckning');return;}if(allGrades().some(g=>g.key===key)){alert(`"${key}" finns redan`);return;}const fg=color;const bg=lightenHex(color,.85);const bd=lightenHex(color,.5);if(!db.customGrades)db.customGrades=[];db.customGrades.push({key,label,fg,bg,bd});document.getElementById('cg-label').value='';document.getElementById('cg-name').value='';onChange();renderCustomGradeList();showToast(`Betyg "${key}" tillagt`);}
@@ -3905,6 +3973,71 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v116',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔧', text:'Rensa-knappen i pickern rensar nu även omprovresultat och retake-flagga — badgen försvinner korrekt.' },
+    ]
+  },
+  {
+    version: 'v115',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'improved', icon:'🔄', text:'Omprovresultat skriver nu automatiskt över originalbetyget — badgen uppdateras direkt och eleven försvinner från riskzon om de klarat omprovet. Det gamla betyget sparas i historiken.' },
+    ]
+  },
+  {
+    version: 'v114',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'📊', text:'Riskzon och statistik tar nu hänsyn till omprovresultat — en elev som gått från F till E via omprov visas inte längre i riskzon.' },
+    ]
+  },
+  {
+    version: 'v113',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔧', text:'Omprov-ikoner i tabellen försvinner nu direkt när ett betyg tas bort från "Kräver omprov".' },
+    ]
+  },
+  {
+    version: 'v112',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔧', text:'När ett betyg tas bort från "Kräver omprov" rensas nu automatiskt befintliga omprov-flaggor på elever som har det betyget — såvida inget omprov redan påbörjats.' },
+    ]
+  },
+  {
+    version: 'v111',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔧', text:'Omprov/riskzon-badgar renderas nu direkt i Inställningar > Betyg utan timing-beroenden.' },
+    ]
+  },
+  {
+    version: 'v110',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔧', text:'Inställningsflikar fungerar nu korrekt — betygslistor och versionshistorik visas direkt.' },
+    ]
+  },
+  {
+    version: 'v109',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔧', text:'Omprov/riskzon-badgarna visas nu korrekt i Inställningar > Betyg.' },
+      { type:'fixed', icon:'🔧', text:'Om-fliken visar nu versionshistoriken korrekt.' },
+    ]
+  },
+  {
     version: 'v108',
     label: 'Senaste',
     date: '2026-03',
@@ -3986,7 +4119,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v108';
+const LATEST_VERSION = 'v116';
 
 function openReleaseNotes(){
   openSettings();
@@ -4593,7 +4726,8 @@ function collectTodoItems(cls){
             if(!g&&!retake)continue;
 
             const gi=gradeInfo(g);
-            const isRisk=isRiskGrade(g);
+            const effG3=effectiveGrade(cls,key,g);
+            const isRisk=isRiskGrade(effG3);
             const isKomp=g==='K';
             const isCustomFollowUp=g&&!isRisk&&!isKomp&&followUpGrades.has(g)&&!['A','B','C','D','E'].includes(g);
 
@@ -4955,19 +5089,38 @@ function saveOmprovResult(){
   const note=document.getElementById('omprov-note').value.trim();
   const results=getOmprovResults(c,key);
   const attempt=results.length+1;
-  results.push({grade:_omprovPendingGrade,note,date:todayStr(),attempt});
+  const prevGrade=c.grades[key]||'';
+  results.push({grade:_omprovPendingGrade,note,date:todayStr(),attempt,prevGrade});
 
-  // If passed (A-E), clear the omprov pending flag
+  // Skriv över originalbetyget OM omprovet är godkänt (A-E)
+  // Vid F eller Komp behålls originalbetyget — omprovresultatet finns i historiken
+  const omprovGodkant=!requiresRetake(_omprovPendingGrade);
+  if(omprovGodkant){
+    // Skriv det nya betyget direkt i grades så tabellen och picker visar rätt
+    c.grades[key]=_omprovPendingGrade;
+    // Rensa omprovResults för denna nyckel så effectiveGrade inte krockar
+    // (c.grades[key] är nu det korrekta betyget)
+    // OBS: behåll omprovResults för historik men det påverkar inte visning
+  }
+  // Det gamla betyget bevaras alltid i omprovResults[].prevGrade och historiken
+
+  // Logga betygsändringen i historiken
+  if(prevGrade&&prevGrade!==_omprovPendingGrade){
+    if(!c.history[key])c.history[key]=[];
+    c.history[key].push({from:prevGrade,to:_omprovPendingGrade,note:`Omprov (försök ${attempt})`,date:todayStr()});
+  }
+
+  // Hantera retake-flagga
   if(requiresRetake(_omprovPendingGrade)){
-    c.retakes[key]=true; // still needs follow-up
+    c.retakes[key]=true; // fortfarande underkänt, behöver nytt omprov
   } else {
-    delete c.retakes[key]; // passed
+    delete c.retakes[key]; // godkänt — inga fler omprov behövs
   }
 
   const s=c.students.find(x=>x.id===sid)||{name:sid};
   const def=subjectDef(sk,c);
   addLog('grade',
-    `Omprov ${attempt}: ${s.name} → ${gradeLabel(_omprovPendingGrade)}`,
+    `Omprov ${attempt}: ${s.name} ${gradeLabel(prevGrade)}→${gradeLabel(_omprovPendingGrade)}`,
     `${def.name} ÅK${yr} · försök ${attempt}`,
     currentClassId
   );
@@ -4976,7 +5129,7 @@ function saveOmprovResult(){
   document.getElementById('omprov-overlay').classList.remove('open');
   _omprovTarget=null;_omprovPendingGrade=null;
   renderSubject();
-  showToast(`Omprovbetyg ${gradeLabel(results[results.length-1].grade)} sparat (försök ${attempt})`);
+  showToast(omprovGodkant?`✓ Omprov godkänt — betyg uppdaterat till ${gradeLabel(_omprovPendingGrade||results[results.length-1].grade)}`:`Omprovbetyg ${gradeLabel(results[results.length-1].grade)} registrerat`);
 }
 
 function removeOmprovResult(key,i){
@@ -6257,13 +6410,16 @@ function showUpdateBanner(version){
 /* ================================================================
    INSTÄLLNINGAR — modal med flikar
 ================================================================ */
-function openSettings(){
-  showSettingsTab('utseende');
+function openSettings(tab){
   openModal('modal-settings');
-  // Synka news-dot
-  const dot=document.getElementById('news-unread-dot-modal');
-  const mainDot=document.getElementById('news-unread-dot');
-  if(dot&&mainDot)dot.className=mainDot.className;
+  // Kör showSettingsTab EFTER att modalen öppnats så DOM-elementen finns
+  setTimeout(()=>{
+    showSettingsTab(tab||'utseende');
+    // Synka news-dot
+    const dot=document.getElementById('news-unread-dot-modal');
+    const mainDot=document.getElementById('news-unread-dot');
+    if(dot&&mainDot)dot.className=mainDot.className;
+  },30);
 }
 
 function showSettingsTab(tab){
@@ -6274,7 +6430,7 @@ function showSettingsTab(tab){
   if(!body)return;
 
   if(tab==='utseende')    body.innerHTML=renderSettingsUtseende();
-  else if(tab==='betyg')  {body.innerHTML=renderSettingsBetyg();setTimeout(()=>{renderCustomGradeList();renderGradeToggleLists();},10);}
+  else if(tab==='betyg')  {body.innerHTML=renderSettingsBetyg();setTimeout(renderCustomGradeList,50);}
   else if(tab==='funktioner') body.innerHTML=renderSettingsFunktioner();
   else if(tab==='data')   body.innerHTML=renderSettingsData();
   else if(tab==='om')     body.innerHTML=renderSettingsOm();
@@ -6310,6 +6466,12 @@ function setTheme(key){
 }
 
 function renderSettingsBetyg(){
+  const retakeSet=new Set(Array.isArray(db.retakeGrades)?db.retakeGrades:['F','K']);
+  const riskSet=new Set(Array.isArray(db.riskGrades)?db.riskGrades:['F','E-']);
+  const grades=allGrades();
+  const makeToggle=(g,on,fn)=>`<label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;cursor:pointer;border:1.5px solid ${on?g.bd||'#ccc':'var(--border)'};background:${on?g.bg||'#eee':'var(--surface2)'};font-size:.78rem;font-weight:${on?700:400};transition:all .15s"><input type="checkbox" ${on?'checked':''} onchange="${fn}('${g.key}',this.checked)" style="accent-color:var(--accent);width:13px;height:13px"><span style="color:${on?g.fg||'#333':'var(--text-muted)'}">${gradeLabel(g.key)}</span></label>`;
+  const retakeBadges=grades.map(g=>makeToggle(g,retakeSet.has(g.key),'toggleRetakeGrade')).join('');
+  const riskBadges=grades.map(g=>makeToggle(g,riskSet.has(g.key),'toggleRiskGrade')).join('');
   return`<div style="display:flex;flex-direction:column;gap:16px">
     <div class="fg">
       <label class="fg-label">🎨 Betygsvärden</label>
@@ -6321,17 +6483,16 @@ function renderSettingsBetyg(){
         <input type="color" id="cg-color" value="#607d8b">
         <button class="btn btn-primary btn-sm" onclick="addCustomGrade()">+ Lägg till</button>
       </div>
-
     </div>
     <div style="border-top:1px solid var(--border-soft);padding-top:14px">
       <label class="fg-label">🔄 Kräver omprov/komplettering</label>
       <p class="text-xs text-muted mb-2">Välj vilka betyg som flaggar för omprov automatiskt.</p>
-      <div id="retake-grade-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${retakeBadges}</div>
     </div>
     <div style="border-top:1px solid var(--border-soft);padding-top:14px">
       <label class="fg-label">⚠ Riskzon</label>
       <p class="text-xs text-muted mb-2">Välj vilka betyg som markeras i riskzon och statistik.</p>
-      <div id="risk-grade-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${riskBadges}</div>
     </div>
     <div style="border-top:1px solid var(--border-soft);padding-top:14px">
       <label class="fg-label">⚠ Frånvarogräns (ogiltig frånvaro)</label>
@@ -6344,6 +6505,7 @@ function renderSettingsBetyg(){
     </div>
   </div>`;
 }
+
 
 function saveAbsenceLimitInline(){
   const val=parseInt(document.getElementById('absence-limit-inp')?.value)||15;
@@ -6442,8 +6604,8 @@ function renderSettingsOm(){
   onChange();
   document.getElementById('news-unread-dot')?.classList.remove('show');
   document.getElementById('news-unread-dot-modal')?.classList.remove('show');
-
-  renderReleaseList();
+  // renderReleaseList() körs EFTER att diven finns i DOM
+  setTimeout(renderReleaseList, 20);
   return`<div id="release-list"></div>`;
 }
 
