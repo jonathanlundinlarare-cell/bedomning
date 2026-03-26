@@ -1874,7 +1874,8 @@ function renderGradeTab(cls,sk){
          </div>`:'';
 
       // Show omprov button if grade is F/Komp/E- or if already flagged
-      const showOmprovBtn=(needsOmprov||(g&&requiresRetake(g)));
+      // Helhetsbedömning-momentet ska aldrig visa omprov-knapp
+      const showOmprovBtn=!isHelhets&&(needsOmprov||(g&&requiresRetake(g)));
 
       const omprovBtn=showOmprovBtn&&!hasOmprov?
         `<div style="margin-top:2px">
@@ -2594,8 +2595,10 @@ function getHelhetsGrades(cls,sk,yr){
     for(let ai=0;ai<areas.length;ai++)
       for(let mi=0;mi<areas[ai].moments.length;mi++){
         if(!areas[ai].moments[mi].toLowerCase().includes('helhet'))continue;
-        const g=cls.grades[gKey(s.id,sk,yr,ai,mi)]||'';
-        if(g)grades.push({grade:g,area:areas[ai].name,name:s.name,sid:s.id});
+        const key=gKey(s.id,sk,yr,ai,mi);
+        const g=effectiveGrade(cls,key,cls.grades[key]||'');
+        if(g)grades.push({grade:g,area:areas[ai].name,areaName:areas[ai].name,
+          name:s.name,sid:s.id,ai,mi,key});
       }
   return grades;
 }
@@ -2615,12 +2618,12 @@ function renderStatClass(){
       const g=((c.finalGrades[s.id]||{})[sk]||{})[yr]?.[t]||'';
       if(g){allF.push(g);if(isRiskGrade(g))riskSet.add(s.id);}
     }
-    // Also flag risk from helhetsbedömningar — använd effectiveGrade
+    // Also flag risk from helhetsbedömningar
     for(const yr of YEARS){
-      const hg=getHelhetsGrades(c,sk,yr);
+      const hg=getHelhetsGrades(c,sk,yr).filter(h=>h.sid===s.id);
       for(const h of hg){
         const areas2=(c.areas[sk]||{})[yr]||[];
-        const ai2=areas2.findIndex(a=>a.name===h.areaName);
+        const ai2=areas2.findIndex(a=>a.name===h.area); // h.area not h.areaName
         const mi2=ai2>=0?(areas2[ai2].moments||[]).findIndex(m=>m.toLowerCase().includes('helhet')):-1;
         const key2=ai2>=0&&mi2>=0?gKey(h.sid,sk,yr,ai2,mi2):null;
         const effG=key2?effectiveGrade(c,key2,h.grade):h.grade;
@@ -3372,7 +3375,7 @@ function updateStudent(id,name){
   }
 }
 function removeStudent(id){const c=currentClass();if(!c)return;if(!confirm('Ta bort elev?'))return;c.students=c.students.filter(s=>s.id!==id);onChange();renderSubject();renderTopbar();renderSidebar();}
-function addArea(sk,yr){const c=currentClass();if(!c)return;c.areas[sk][yr].push({name:'Nytt arbetsområde',moments:['Prov','Uppgift 1']});onChange();renderSubject();}
+function addArea(sk,yr){const c=currentClass();if(!c)return;c.areas[sk][yr].push({name:'Nytt arbetsområde',moments:['Prov','Uppgift 1','Helhetsbedömning']});onChange();renderSubject();}
 function removeArea(sk,yr,ai){const c=currentClass();if(!c)return;if(!confirm('Ta bort arbetsområde?'))return;c.areas[sk][yr].splice(ai,1);onChange();renderSubject();}
 function updateAreaName(sk,yr,ai,val){
   const c=currentClass();if(!c)return;
@@ -4072,6 +4075,23 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v126',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'improved', icon:'⭐', text:'Helhetsbedömning är nu förifylld i varje nytt arbetsområde och visas utan omprov-knapp — omprov görs på andra moment, inte på helhetsomdömet.' },
+      { type:'fixed',    icon:'📋', text:'E– visas inte längre som åtgärd i Att göra-listan, men räknas fortfarande i riskzon och statistik.' },
+    ]
+  },
+  {
+    version: 'v125',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'📊', text:'Elever i riskzon visar nu korrekt antal — en bugg med h.areaName (skulle vara h.area) gjorde att alla elever hamnade i riskzon.' },
+    ]
+  },
+  {
     version: 'v124',
     label: 'Senaste',
     date: '2026-03',
@@ -4285,7 +4305,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v124';
+const LATEST_VERSION = 'v126';
 
 function openReleaseNotes(){
   openSettings();
@@ -4893,7 +4913,8 @@ function collectTodoItems(cls){
 
             const gi=gradeInfo(g);
             const effG3=effectiveGrade(cls,key,g);
-            const isRisk=isRiskGrade(effG3);
+            // E- visas i riskzon men ska INTE dyka upp som åtgärd i Att göra
+            const isRisk=isRiskGrade(effG3)&&effG3!=='E-';
             const isKomp=g==='K';
             const isCustomFollowUp=g&&!isRisk&&!isKomp&&followUpGrades.has(g)&&!['A','B','C','D','E'].includes(g);
 
@@ -5142,7 +5163,10 @@ function renderPickerOmprovSection(cls,sid,sk,yr,ai,mi,curGrade){
   const isPending=cls.retakes[key]||false;
 
   // Only show if grade is F/K/E- OR already has omprov history
-  if(!curGrade||(!requiresRetake(curGrade)&&!results.length&&!isPending)){
+  // Helhetsbedömning ska inte visa omprov-sektion
+  const mname2=document.getElementById('picker-sub')?.textContent||'';
+  const isHeltsPicker=mname2.toLowerCase().includes('helhet');
+  if(isHeltsPicker||!curGrade||(!requiresRetake(curGrade)&&!results.length&&!isPending)){
     sec.style.display='none';return;
   }
   sec.style.display='block';
