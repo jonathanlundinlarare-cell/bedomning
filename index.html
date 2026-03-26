@@ -430,7 +430,9 @@ tr.risk-row td.td-name{background:var(--risk-bg)!important;color:var(--red);font
 tr.absence-warn td.td-name{border-left:3px solid var(--orange)!important}
 
 /* GRADE BADGE */
-.gb{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-weight:700;font-size:.72rem;cursor:pointer;transition:transform .1s,box-shadow .1s;border:1.5px solid;position:relative;flex-shrink:0}
+.gb{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-weight:700;font-size:.72rem;cursor:pointer;transition:transform .1s,box-shadow .1s;border:1.5px solid;position:relative;flex-shrink:0;outline:none}
+.gb:focus-visible{box-shadow:0 0 0 3px var(--accent)!important;transform:scale(1.1)}
+.gb.kb-focus{box-shadow:0 0 0 3px var(--accent)!important;transform:scale(1.1)}
 .gb:hover{transform:scale(1.14);box-shadow:0 3px 10px rgba(0,0,0,.12)}
 .gb .dot{position:absolute;border-radius:50%;width:5px;height:5px}
 .gb .dot-note{top:1px;right:1px;background:var(--accent)}
@@ -932,6 +934,9 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
 .archived-toggle{font-size:.72rem;color:var(--text-muted);cursor:pointer;padding:3px 8px;
   border:1px solid var(--border);border-radius:6px;background:var(--surface2);margin-top:6px;display:inline-block}
 .archived-toggle:hover{color:var(--text)}
+
+.gc-cell:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-lt)!important}
+.gc-cell.kbd-active{outline:2px solid var(--accent);outline-offset:-2px}
 
 /* ═══ FÖRHANDSVISNING MODAL ════════════════════════════════════════ */
 .preview-overlay{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.55);
@@ -1884,9 +1889,12 @@ function renderGradeTab(cls,sk){
            </button>
          </div>`:'';
 
-      cells+=`<td class="${hasOmprov||omprovBtn?'td-with-omprov':''}" style="${isHelhets?'background:var(--helhets-bg,#fffdf0);border-left:2px solid #f0c040!important':''}" title="${isHelhets?'Helhetsbedömning':''}">
+      cells+=`<td class="gc-cell ${hasOmprov||omprovBtn?'td-with-omprov':''}" style="${isHelhets?'background:var(--helhets-bg,#fffdf0);border-left:2px solid #f0c040!important':''}" title="${isHelhets?'Helhetsbedömning':''}" data-sid="${s.id}" data-sk="${sk}" data-yr="${yr}" data-ai="${ai}" data-mi="${mi}" data-sname="${esc2(s.name)}" data-aname="${esc2(areas[ai].name)}" data-mname="${esc2(areas[ai].moments[mi])}" tabindex="-1">
         <div style="display:flex;flex-direction:column;align-items:center">
           <div class="gb ${gradeCss(latestGrade||g)}${isHelhets?' gb-helhets':''}${needsOmprov?' gb-omprov-pending':''}"
+            data-sid="${s.id}" data-sk="${sk}" data-yr="${yr}" data-ai="${ai}" data-mi="${mi}"
+            data-sname="${esc2(s.name)}" data-aname="${esc2(areas[ai].name)}" data-mname="${esc2(areas[ai].moments[mi])}"
+            tabindex="0" role="button"
             onclick="openPicker('${s.id}','${sk}',${yr},${ai},${mi},'${esc2(s.name)}','${esc2(areas[ai].name)}','${esc2(areas[ai].moments[mi])}')">${gradeLabel(latestGrade||g||'')}${dots}</div>
           ${chainBadge}${omprovBtn}
         </div>
@@ -4075,6 +4083,14 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v127',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'added', icon:'⌨', text:'Tangentbordsnavigering i betygstabellen — piltangenter för att flytta mellan celler, A/B/C/D/E/F för att sätta betyg direkt, Enter för att öppna picker, Backspace för att rensa. Aktiveras under Inställningar > Funktioner.' },
+    ]
+  },
+  {
     version: 'v126',
     label: 'Senaste',
     date: '2026-03',
@@ -4305,7 +4321,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v126';
+const LATEST_VERSION = 'v127';
 
 function openReleaseNotes(){
   openSettings();
@@ -6712,7 +6728,7 @@ function renderSettingsFunktioner(){
   const recomF=!db.settings?.recomFinalDisabled;
   const currOn=!db.settings?.currDisabled;
   const currCritOn=!db.settings?.currCritDisabled;
-
+  const kbNavOn=db.settings?.kbNavEnabled!==false; // default on
   const toggle=(id,label,desc,checked,fn)=>`
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-soft)">
       <div>
@@ -6725,12 +6741,20 @@ function renderSettingsFunktioner(){
     </div>`;
 
   return`<div>
+    ${toggle('fn-kbnav','⌨ Tangentbordsnavigering','Piltangenter navigerar celler. A/B/C/D/E/F sätter betyg direkt. Enter öppnar picker.',kbNavOn,"toggleKbNav();showSettingsTab('funktioner')")}
     ${toggle('fn-adapt','🔧 Anpassningar','Visa anpassningsfunktioner per elev och ämne.',adaptOn,"toggleAdaptationsEnabled();showSettingsTab('funktioner')")}
     ${toggle('fn-recom-h','💡 Rekommendation vid helhetsbedömning','Föreslå betyg baserat på tidigare moment i arbetsområdet.',recomH,"toggleRecomHelhets();showSettingsTab('funktioner')")}
     ${toggle('fn-recom-f','💡 Rekommendation vid terminsbetyg','Föreslå terminsbetyg baserat på helhetsbedömningar.',recomF,"toggleRecomFinal();showSettingsTab('funktioner')")}
     ${toggle('fn-curr','📚 Kursplansbibliotek (LGR22)','Visa kursplansknapp och CC-kopplingar per arbetsområde.',currOn,"toggleCurrEnabled();showSettingsTab('funktioner')")}
     ${toggle('fn-curr-crit','📚 Betygskriterier i picker','Visa betygskriterier att bocka av i helhetsbedömnings-pickern.',currCritOn&&currOn,"toggleCurrCritEnabled();showSettingsTab('funktioner')")}
   </div>`;
+}
+
+function toggleKbNav(){
+  if(!db.settings)db.settings={};
+  db.settings.kbNavEnabled=db.settings.kbNavEnabled===false?true:false;
+  onChange();
+  showToast('Tangentbordsnavigering '+(db.settings.kbNavEnabled!==false?'aktiverad':'inaktiverad'));
 }
 
 function toggleRecomHelhets(){
@@ -6969,6 +6993,268 @@ function toggleArchiveStudent(sid){
   renderSubject(); // re-render klass-fliken
   showToast(s.archived?`${s.name} arkiverad`:`${s.name} återställd`);
 }
+
+
+/* ================================================================
+   TANGENTBORDSNAVIGERING I BETYGSTABELLEN
+================================================================ */
+function toggleKbdNav(){
+  if(!db.settings)db.settings={};
+  db.settings.keyboardNavEnabled=db.settings.keyboardNavEnabled===false?true:false;
+  onChange();
+  showToast('Tangentbordsnavigering: '+(db.settings.keyboardNavEnabled!==false?'På':'Av'));
+}
+
+function isKbdNavEnabled(){
+  return db.settings?.keyboardNavEnabled!==false;
+}
+
+// Hämta alla gc-cell i tabellordning
+function getGridCells(){
+  return Array.from(document.querySelectorAll('.gc-cell'));
+}
+
+function getCellCoords(cell){
+  return {
+    sid:  cell.dataset.sid,
+    sk:   cell.dataset.sk,
+    yr:   parseInt(cell.dataset.yr),
+    ai:   parseInt(cell.dataset.ai),
+    mi:   parseInt(cell.dataset.mi),
+    sname:cell.dataset.sname,
+    aname:cell.dataset.aname,
+    mname:cell.dataset.mname
+  };
+}
+
+document.addEventListener('keydown', function(e){
+  if(!isKbdNavEnabled()) return;
+  // Ignorera om fokus är i ett inputfält
+  const tag=document.activeElement?.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+  // Ignorera om en modal/picker är öppen
+  if(document.querySelector('.picker-overlay.open,.modal-overlay.open')) return;
+
+  const cells=getGridCells();
+  if(!cells.length) return;
+
+  // Hitta nuvarande fokuserad cell
+  let cur=document.querySelector('.gc-cell.kbd-active')||document.activeElement;
+  let curIdx=cells.indexOf(cur);
+
+  // Räkna ut antal kolumner (moment per rad)
+  // Alla rader har lika många celler, så cols = cells.length / rader
+  const rows=document.querySelectorAll('tbody tr');
+  const cols=rows.length>0?cells.length/rows.length:1;
+
+  if(e.key==='ArrowRight'||e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='ArrowDown'){
+    e.preventDefault();
+    let nextIdx=curIdx;
+    if(curIdx<0) nextIdx=0;
+    else if(e.key==='ArrowRight') nextIdx=Math.min(curIdx+1, cells.length-1);
+    else if(e.key==='ArrowLeft')  nextIdx=Math.max(curIdx-1, 0);
+    else if(e.key==='ArrowDown')  nextIdx=Math.min(curIdx+Math.round(cols), cells.length-1);
+    else if(e.key==='ArrowUp')    nextIdx=Math.max(curIdx-Math.round(cols), 0);
+
+    cells.forEach(c=>c.classList.remove('kbd-active'));
+    cells[nextIdx].classList.add('kbd-active');
+    cells[nextIdx].focus();
+    cells[nextIdx].scrollIntoView({block:'nearest',inline:'nearest'});
+    return;
+  }
+
+  // Snabbinmatning av betyg med tangentbord
+  if(curIdx>=0&&cur){
+    const gradeMap={
+      'a':'A','b':'B','c':'C','d':'D','e':'E','f':'F',
+      'A':'A','B':'B','C':'C','D':'D','E':'E','F':'F',
+    };
+    const grade=gradeMap[e.key];
+    if(grade){
+      e.preventDefault();
+      const {sid,sk,yr,ai,mi,sname,aname,mname}=getCellCoords(cur);
+      const c=currentClass();if(!c)return;
+      const key=gKey(sid,sk,yr,ai,mi);
+      const prevGrade=c.grades[key]||'';
+      // Sätt betyget direkt utan att öppna pickern
+      if(prevGrade&&prevGrade!==grade){
+        if(!c.history[key])c.history[key]=[];
+        c.history[key].push({from:prevGrade,to:grade,note:'Tangentbord',date:todayStr()});
+      }
+      if(requiresRetake(prevGrade)&&!requiresRetake(grade)) delete c.retakes[key];
+      if(requiresRetake(grade)) c.retakes[key]=true;
+      c.grades[key]=grade;
+      onChange();
+      renderSubject();
+      // Återfokusera samma cell efter render
+      setTimeout(()=>{
+        const newCells=getGridCells();
+        if(newCells[curIdx]){
+          newCells[curIdx].classList.add('kbd-active');
+          newCells[curIdx].focus();
+        }
+      },50);
+      showToast(`${sname}: ${gradeLabel(grade)}`);
+      return;
+    }
+    // Backspace/Delete — rensa betyget
+    if(e.key==='Backspace'||e.key==='Delete'){
+      e.preventDefault();
+      const {sid,sk,yr,ai,mi}=getCellCoords(cur);
+      const c=currentClass();if(!c)return;
+      const key=gKey(sid,sk,yr,ai,mi);
+      delete c.grades[key]; delete c.retakes[key]; delete c.omprovResults[key];
+      onChange(); renderSubject();
+      setTimeout(()=>{
+        const newCells=getGridCells();
+        if(newCells[curIdx]){newCells[curIdx].classList.add('kbd-active');newCells[curIdx].focus();}
+      },50);
+      return;
+    }
+    // Enter/Space — öppna picker
+    if(e.key==='Enter'||e.key===' '){
+      e.preventDefault();
+      const {sid,sk,yr,ai,mi,sname,aname,mname}=getCellCoords(cur);
+      openPicker(sid,sk,yr,ai,mi,sname,aname,mname);
+      return;
+    }
+    // Escape — avmarkera
+    if(e.key==='Escape'){
+      cells.forEach(c=>c.classList.remove('kbd-active'));
+      document.activeElement?.blur();
+    }
+  }
+});
+
+// Klick på cell sätter kbd-active
+document.addEventListener('click', function(e){
+  const cell=e.target.closest('.gc-cell');
+  if(cell){
+    getGridCells().forEach(c=>c.classList.remove('kbd-active'));
+    cell.classList.add('kbd-active');
+  } else if(!e.target.closest('.picker,.modal')) {
+    getGridCells().forEach(c=>c.classList.remove('kbd-active'));
+  }
+});
+
+
+/* ================================================================
+   TANGENTBORDSNAVIGERING
+   Piltangenter: navigera mellan gb-celler
+   A/B/C/D/E/F: sätt betyg direkt
+   Enter/Space: öppna picker
+   Escape: avmarkera
+================================================================ */
+let _kbFocus = null; // { el, sid, sk, yr, ai, mi, ... }
+
+function kbGetAllCells(){
+  return Array.from(document.querySelectorAll('.gb[data-sid]'));
+}
+
+function kbFocusCell(el){
+  // Ta bort fokus från förra
+  if(_kbFocus&&_kbFocus.el&&!_kbFocus.el.isConnected){_kbFocus=null;}
+  document.querySelectorAll('.gb.kb-focus').forEach(e=>e.classList.remove('kb-focus'));
+  if(!el)return (_kbFocus=null);
+  el.classList.add('kb-focus');
+  el.scrollIntoView({block:'nearest',inline:'nearest'});
+  _kbFocus={
+    el,
+    sid:el.dataset.sid, sk:el.dataset.sk,
+    yr:parseInt(el.dataset.yr), ai:parseInt(el.dataset.ai), mi:parseInt(el.dataset.mi),
+    sname:el.dataset.sname, aname:el.dataset.aname, mname:el.dataset.mname
+  };
+}
+
+function kbNavigate(dir){
+  const cells=kbGetAllCells();
+  if(!cells.length)return;
+  if(!_kbFocus){kbFocusCell(cells[0]);return;}
+  const idx=cells.indexOf(_kbFocus.el);
+  if(idx<0){kbFocusCell(cells[0]);return;}
+
+  // Räkna ut grid-dimensioner
+  // Kolumner = antal gb per rad (antal moment × antal arbetsområden)
+  const firstRow=cells[0]?.closest('tr');
+  const rowCells=firstRow?Array.from(firstRow.querySelectorAll('.gb[data-sid]')):[];
+  const cols=rowCells.length||1;
+
+  let next=-1;
+  if(dir==='right') next=idx+1;
+  else if(dir==='left')  next=idx-1;
+  else if(dir==='down')  next=idx+cols;
+  else if(dir==='up')    next=idx-cols;
+
+  if(next>=0&&next<cells.length) kbFocusCell(cells[next]);
+}
+
+function kbSetGrade(grade){
+  if(!_kbFocus)return;
+  const c=currentClass();if(!c)return;
+  const{sid,sk,yr,ai,mi}=_kbFocus;
+  const key=gKey(sid,sk,yr,ai,mi);
+  const prev=c.grades[key]||'';
+  if(prev===grade)return;
+
+  // Spara via confirmPickerGrade-flödet
+  _pt={sid,sk,yr,ai,mi};_pickMode='grade';_pendingGrade=grade;
+  confirmPickerGrade();
+
+  // Uppdatera gb-innehåll direkt utan full re-render
+  if(_kbFocus&&_kbFocus.el&&_kbFocus.el.isConnected){
+    const newG=grade;
+    _kbFocus.el.textContent=gradeLabel(newG)||'–';
+    _kbFocus.el.className='gb '+gradeCss(newG)+(_kbFocus.el.className.includes('gb-helhets')?' gb-helhets':'');
+    _kbFocus.el.classList.add('kb-focus');
+  }
+}
+
+document.addEventListener('keydown', e=>{
+  // Kolla om navigering är aktiverad
+  if(db.settings?.kbNavEnabled===false)return;
+
+  // Ignorera om en modal/picker är öppen eller om man skriver i ett fält
+  const tag=document.activeElement?.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+  if(document.querySelector('.picker-overlay.open,.modal-overlay.open'))return;
+
+  const key=e.key;
+
+  // Piltangenter
+  if(key==='ArrowRight'){e.preventDefault();kbNavigate('right');return;}
+  if(key==='ArrowLeft') {e.preventDefault();kbNavigate('left');return;}
+  if(key==='ArrowDown') {e.preventDefault();kbNavigate('down');return;}
+  if(key==='ArrowUp')   {e.preventDefault();kbNavigate('up');return;}
+
+  // Escape — avmarkera
+  if(key==='Escape'){kbFocusCell(null);return;}
+
+  // Enter/Space — öppna picker för fokuserad cell
+  if((key==='Enter'||key===' ')&&_kbFocus){
+    e.preventDefault();
+    const{sid,sk,yr,ai,mi,sname,aname,mname}=_kbFocus;
+    openPicker(sid,sk,yr,ai,mi,sname,aname,mname);
+    return;
+  }
+
+  // Bokstavstangenter A-F — sätt betyg direkt
+  if(!_kbFocus)return;
+  const gradeMap={'a':'A','b':'B','c':'C','d':'D','e':'E','f':'F'};
+  const g=gradeMap[key.toLowerCase()];
+  if(g){e.preventDefault();kbSetGrade(g);return;}
+
+  // Backspace/Delete — rensa betyg
+  if(key==='Backspace'||key==='Delete'){
+    e.preventDefault();kbSetGrade('');return;
+  }
+});
+
+// Klick på gb sätter även kb-fokus
+document.addEventListener('click', e=>{
+  const gb=e.target.closest('.gb[data-sid]');
+  if(gb) kbFocusCell(gb);
+  else if(!e.target.closest('.picker,.modal')) kbFocusCell(null);
+});
 
 (async function boot(){
   // ── Electron window focus recovery ─────────────────────────────────
