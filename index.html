@@ -1503,6 +1503,26 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
 <div id="pdf-container" class="pdf-only"></div>
 
 <script>
+/* STAT INFO */
+var STAT_INFO={
+  'class':   {icon:'🎓',title:'Klassbild',   text:'Sammanfattning av klassens betygsläge — KPI-kort, betygsdistribution per ämne/år, andel godkända. Växla terminsbetyg/helhetsbedömningar.'},
+  'risk':    {icon:'⚠', title:'Riskzon',     text:'Elever som riskerar att inte nå E — terminsbetyg under E, helhetsbedömningar F/E– och hög ogiltig frånvaro.'},
+  'todo':    {icon:'📋',title:'Att göra',    text:'Konkreta åtgärder: omprov, F-betyg, kompletteringar. E– visas inte här men räknas i riskzon. Kryssa av hanterade ärenden.'},
+  'deep':    {icon:'🔬',title:'Fördjupning', text:'Jämför betygsfördelning och frånvaro per kön eller SvA. Välj ämne, år, betygskälla och AO. Snittbetyg: A=6, B=5 ... F=0.'},
+  'compare': {icon:'⚖', title:'Jämför klasser', text:'Ställ klasser mot varandra för ett ämne och år. Välj Momentbetyg om terminsbetyg saknas.'},
+  'areas':   {icon:'📐',title:'Jämför AO',   text:'Välj två klasser, ämne och år — se helhetsbedömningar per arbetsområde sida vid sida.'},
+  'coverage':{icon:'📚',title:'Kursplan',    text:'Hur väl täcker undervisningen det centrala innehållet (LGR22)? Koppla AO till kursplanens delar.'},
+  'print':   {icon:'🖨', title:'Utskrift',   text:'Generera rapporter, granska förhandsvisningen och skriv ut.'},
+};
+function renderStatInfo(tab){
+  var info=STAT_INFO[tab];if(!info)return'';
+  return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:var(--accent-lt);border-radius:8px;margin-bottom:14px;border:1px solid rgba(14,165,233,.18)">'
+    +'<span style="font-size:1rem;flex-shrink:0">'+info.icon+'</span>'
+    +'<div><div style="font-size:.78rem;font-weight:700;color:var(--accent);margin-bottom:2px">'+info.title+'</div>'
+    +'<div style="font-size:.75rem;color:var(--text-muted);line-height:1.5">'+info.text+'</div>'
+    +'</div></div>';
+}
+
 /* ================================================================
    CONSTANTS
 ================================================================ */
@@ -4300,8 +4320,10 @@ const RELEASES = [
     label: 'Senaste',
     date: '2026-03',
     items: [
-      { type:'added',    icon:'📐', text:'Fördjupning: ny AO-dropdown visas när helhetsbedömning är valt — filtrera statistiken per arbetsområde.' },
-      { type:'improved', icon:'⚖',  text:'Jämför AO: välj fritt vilka två klasser, vilket ämne och vilket år. Visar sida vid sida utan krav på exakta namn.' },
+      { type:'fixed',    icon:'🔧', text:'Kritisk bugg fixad: appen kraschade vid start p.g.a. saknad renderStatInfo-funktion.' },
+      { type:'improved', icon:'📐', text:'Jämför AO: välj fritt klass 1 vs klass 2, ämne och år med dropdowns.' },
+      { type:'added',    icon:'🔬', text:'Fördjupning: AO-dropdown visas automatiskt vid Helhetsbedömning.' },
+      { type:'added',    icon:'💡', text:'Förklaringsruta per statistikflik.' },
     ]
   },
   {
@@ -7623,7 +7645,7 @@ function renderBarChart(groupStats){
 function renderStatDeep(){
   var c=currentClass();
   if(!c||!c.students.filter(function(s){return !s.archived;}).length)
-    return renderStatInfo('deep')+'<p class="text-sm text-muted" style="padding:20px">Välj en klass med elever.</p>';
+    return '<p class="text-sm text-muted" style="padding:20px">Välj en klass med elever.</p>';
 
   var subs=classSubjects(c);
   var active=c.students.filter(function(s){return !s.archived;});
@@ -7631,24 +7653,23 @@ function renderStatDeep(){
   var curYr=parseInt(document.getElementById('deep-yr')?.value||'7');
   var curMode=document.getElementById('deep-mode')?.value||'helhets';
   var curGroup=document.getElementById('deep-group')?.value||'none';
-  var curAo=document.getElementById('deep-ao')?.value||'__all__';
   var GRADE_ORDER=['A','B','C','D','E','E-','F','K'];
 
-  // AO-alternativ för helhets-läget
-  var areas=(c.areas[curSk]||{})[curYr]||[];
+  var curAo=document.getElementById('deep-ao')?.value||'__all__';
+  var deepAreas=(c.areas[curSk]||{})[curYr]||[];
   var aoOpts='<option value="__all__"'+(curAo==='__all__'?' selected':'')+'>Alla arbetsområden</option>'
-    +areas.map(function(a){return '<option value="'+a.name+'"'+(curAo===a.name?' selected':'')+'>'+esc(a.name)+'</option>';}).join('');
+    +deepAreas.map(function(a){return '<option value="'+esc(a.name)+'"'+(curAo===a.name?' selected':'')+'>'+esc(a.name)+'</option>';}).join('');
 
   function getGrades(sid){
     var result=[];
     if(curMode==='helhets'){
-      for(var ai=0;ai<areas.length;ai++){
-        if(curAo!=='__all__'&&areas[ai].name!==curAo)continue;
-        for(var mi=0;mi<areas[ai].moments.length;mi++){
-          if(!areas[ai].moments[mi].toLowerCase().includes('helhet'))continue;
+      for(var ai=0;ai<deepAreas.length;ai++){
+        if(curAo!=='__all__'&&deepAreas[ai].name!==curAo)continue;
+        for(var mi=0;mi<deepAreas[ai].moments.length;mi++){
+          if(!deepAreas[ai].moments[mi].toLowerCase().includes('helhet'))continue;
           var key=gKey(sid,curSk,curYr,ai,mi);
           var g=effectiveGrade(c,key,c.grades[key]||'');
-          if(g)result.push({grade:g,area:areas[ai].name});
+          if(g)result.push({grade:g,area:deepAreas[ai].name});
         }
       }
     } else if(curMode==='final-HT'||curMode==='final-VT'){
@@ -7657,7 +7678,7 @@ function renderStatDeep(){
       if(fg)result.push({grade:fg,area:term});
     } else {
       getAllMomentGrades(c,curSk,curYr).filter(function(x){return x.sid===sid;})
-        .forEach(function(x){result.push({grade:x.grade,area:x.area||'',moment:x.moment||''});});
+        .forEach(function(x){result.push({grade:x.grade,area:x.area||''});});
     }
     return result;
   }
@@ -7665,7 +7686,9 @@ function renderStatDeep(){
   function buildDist(students){
     var cnt={};var total=0;
     students.forEach(function(s){
-      getGrades(s.id).forEach(function(x){cnt[x.grade]=(cnt[x.grade]||0)+1;total++;});
+      getGrades(s.id).forEach(function(x){
+        cnt[x.grade]=(cnt[x.grade]||0)+1;total++;
+      });
     });
     return{cnt:cnt,total:total};
   }
@@ -7674,11 +7697,14 @@ function renderStatDeep(){
     var rank={A:6,B:5,C:4,D:3,E:2,'E-':1,F:0};
     var sum=0,n=0;
     students.forEach(function(s){
-      getGrades(s.id).forEach(function(x){if(rank[x.grade]!==undefined){sum+=rank[x.grade];n++;}});
+      getGrades(s.id).forEach(function(x){
+        if(rank[x.grade]!==undefined){sum+=rank[x.grade];n++;}
+      });
     });
     return n?Math.round(sum/n*10)/10:null;
   }
 
+  // Bygg grupper
   var groups=[];
   if(curGroup==='none'){
     groups.push({label:'Hela klassen ('+active.length+')',students:active,color:'#0ea5e9'});
@@ -7696,31 +7722,42 @@ function renderStatDeep(){
     if(nsva.length)groups.push({label:'Ej SvA ('+nsva.length+')',students:nsva,color:'#10b981'});
   }
 
-  if(!groups.length)return renderStatInfo('deep')+'<p class="text-sm text-muted" style="padding:20px">Inga elever i vald grupp.</p>';
+  if(!groups.length)return'<p class="text-sm text-muted" style="padding:20px">Inga elever i vald grupp.</p>';
 
+  // Beräkna stats
   var groupStats=groups.map(function(gr){
     var d=buildDist(gr.students);
     return{label:gr.label,students:gr.students,color:gr.color,cnt:d.cnt,total:d.total,avg:avgScore(gr.students)};
   });
 
-  var subOpts=subs.map(function(sk){var def=subjectDef(sk,c);return '<option value="'+sk+'"'+(sk===curSk?' selected':'')+'>'+def.icon+' '+def.name+'</option>';}).join('');
-  var yrOpts=YEARS.map(function(y){return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>ÅK '+y+'</option>';}).join('');
-  var modeOpts=[{v:'helhets',l:'Helhetsbedömning'},{v:'final-HT',l:'Terminsbetyg HT'},{v:'final-VT',l:'Terminsbetyg VT'},{v:'moments',l:'Alla moment'}]
-    .map(function(o){return '<option value="'+o.v+'"'+(o.v===curMode?' selected':'')+'>'+o.l+'</option>';}).join('');
-  var groupOpts=[{v:'none',l:'Hela klassen'},{v:'gender',l:'Kön (tjej/kille)'},{v:'sva',l:'SvA / Ej SvA'}]
-    .map(function(o){return '<option value="'+o.v+'"'+(o.v===curGroup?' selected':'')+'>'+o.l+'</option>';}).join('');
-
-  var selStyle='padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)';
-  var aoSel=curMode==='helhets'?'<select id="deep-ao" onchange="renderStatTab()" style="'+selStyle+'">'+aoOpts+'</select>':'';
+  // Kontroller
+  var subOpts=subs.map(function(sk){
+    var def=subjectDef(sk,c);
+    return '<option value="'+sk+'"'+(sk===curSk?' selected':'')+'>'+def.icon+' '+def.name+'</option>';
+  }).join('');
+  var yrOpts=YEARS.map(function(y){
+    return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>ÅK '+y+'</option>';
+  }).join('');
+  var modeOpts=[
+    {v:'helhets',l:'Helhetsbedömning'},
+    {v:'final-HT',l:'Terminsbetyg HT'},
+    {v:'final-VT',l:'Terminsbetyg VT'},
+    {v:'moments',l:'Alla moment'}
+  ].map(function(o){return '<option value="'+o.v+'"'+(o.v===curMode?' selected':'')+'>'+o.l+'</option>';}).join('');
+  var groupOpts=[
+    {v:'none',l:'Hela klassen'},
+    {v:'gender',l:'Kön (tjej/kille)'},
+    {v:'sva',l:'SvA / Ej SvA'}
+  ].map(function(o){return '<option value="'+o.v+'"'+(o.v===curGroup?' selected':'')+'>'+o.l+'</option>';}).join('');
 
   var ctrl='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">'
-    +'<select id="deep-sk" onchange="renderStatTab()" style="'+selStyle+'">'+subOpts+'</select>'
-    +'<select id="deep-yr" onchange="renderStatTab()" style="'+selStyle+'">'+yrOpts+'</select>'
-    +'<select id="deep-mode" onchange="renderStatTab()" style="'+selStyle+'">'+modeOpts+'</select>'
-    +aoSel
-    +'<select id="deep-group" onchange="renderStatTab()" style="'+selStyle+'">'+groupOpts+'</select>'
+    +'<select id="deep-sk" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+subOpts+'</select>'
+    +'<select id="deep-yr" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+yrOpts+'</select>'
+    +'<select id="deep-mode" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+modeOpts+'</select>'
+    +'<select id="deep-group" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+groupOpts+'</select>'
     +'</div>';
 
+  // KPI-rad
   var kpis=groupStats.map(function(gr){
     return '<div style="background:var(--surface2);border-radius:8px;padding:10px 16px;min-width:120px;text-align:center">'
       +'<div style="font-size:.72rem;color:var(--text-muted);margin-bottom:3px">'+gr.label+'</div>'
@@ -7728,16 +7765,25 @@ function renderStatDeep(){
       +'<div style="font-size:.68rem;color:var(--text-muted)">snitt · '+gr.total+' betyg</div>'
       +'</div>';
   }).join('');
+  var kpiRow='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">'+kpis+'</div>';
 
+  // Stapeldiagram
   var chart=renderBarChart(groupStats);
-  var chartHtml=chart?'<div style="margin-bottom:16px;overflow-x:auto">'+chart+'</div>'
+  var chartHtml=chart
+    ?'<div style="margin-bottom:16px;overflow-x:auto">'+chart+'</div>'
     :'<p class="text-sm text-muted">Inga betyg att visa för vald kombination.</p>';
 
+  // Frånvaroanalys
   var absHtml='';
   if(curGroup!=='none'){
     var absCards=groupStats.map(function(gr){
       var totO=0,totG=0;
-      gr.students.forEach(function(s){YEARS.forEach(function(yr){TERMS.forEach(function(t){var ab=(c.absence[s.id]||{})[yr]?.[t]||{};totO+=(ab.ogiltig||0);totG+=(ab.giltig||0);});});});
+      gr.students.forEach(function(s){
+        YEARS.forEach(function(yr){TERMS.forEach(function(t){
+          var ab=(c.absence[s.id]||{})[yr]?.[t]||{};
+          totO+=(ab.ogiltig||0);totG+=(ab.giltig||0);
+        });});
+      });
       var n=gr.students.length||1;
       return '<div style="background:var(--surface2);border-radius:8px;padding:8px 14px;min-width:140px">'
         +'<div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px">'+gr.label+'</div>'
@@ -7750,159 +7796,103 @@ function renderStatDeep(){
       +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+absCards+'</div></div>';
   }
 
-  return renderStatInfo('deep')+'<div>'+ctrl+'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">'+kpis+'</div>'+chartHtml+absHtml+'</div>';
+  return renderStatInfo('deep')+'<div>'+ctrl+kpiRow+chartHtml+absHtml+'</div>';
 }
 
 
 function renderStatAreas(){
-  if(db.classes.length<1)return'<p class="text-sm text-muted" style="padding:20px">Inga klasser.</p>';
-
+  if(db.classes.length<1)return renderStatInfo('areas')+'<p class="text-sm text-muted" style="padding:20px">Inga klasser.</p>';
   var selStyle='padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)';
   var GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
   var order=['A','B','C','D','E','E-','F','K'];
   var rank={A:6,B:5,C:4,D:3,E:2,'E-':1,F:0};
+  var activeCls=db.classes.filter(function(cl){return !cl.archived;});
+  if(!activeCls.length)return renderStatInfo('areas')+'<p class="text-sm text-muted" style="padding:20px">Inga aktiva klasser.</p>';
 
-  // Kontrollvärden
-  var activeCls=db.classes.filter(function(c){return !c.archived;});
-  var allSubs=[...new Set(activeCls.flatMap(function(c){return classSubjects(c);}))];
-  var curSk=document.getElementById('ao-sk')?.value||allSubs[0]||'';
+  var curCls1Id=document.getElementById('ao-cls1')?.value||activeCls[0].id;
+  var curCls2Id=document.getElementById('ao-cls2')?.value||(activeCls.length>1?activeCls[1].id:activeCls[0].id);
+  var cls1=db.classes.find(function(cl){return cl.id===curCls1Id;})||activeCls[0];
+  var cls2=db.classes.find(function(cl){return cl.id===curCls2Id;})||activeCls[0];
+  var allSubsSet=new Set(classSubjects(cls1).concat(classSubjects(cls2)));
+  var allSubs=Array.from(allSubsSet);
+  var curSk=document.getElementById('ao-sk')?.value||allSubs[0]||'samhall';
   var curYr=parseInt(document.getElementById('ao-yr')?.value||'7');
-  var curMode=document.getElementById('ao-mode')?.value||'helhets';
 
-  // Hitta alla unika AO-namn för detta ämne+år över alla aktiva klasser
-  var aoNames=[];
-  activeCls.forEach(function(cls){
-    var areas=(cls.areas[curSk]||{})[curYr]||[];
-    areas.forEach(function(a){if(!aoNames.includes(a.name))aoNames.push(a.name);});
-  });
-  var curAo=document.getElementById('ao-area')?.value||aoNames[0]||'';
-
-  // Kontroller
+  var clsOpts=activeCls.map(function(cl){return '<option value="'+cl.id+'">'+esc(cl.name)+(cl.year?' ('+cl.year+')':'')+'</option>';}).join('');
+  var cls1Sel=clsOpts.replace('value="'+curCls1Id+'"','value="'+curCls1Id+'" selected');
+  var cls2Sel=clsOpts.replace('value="'+curCls2Id+'"','value="'+curCls2Id+'" selected');
   var subOpts=allSubs.map(function(sk){
-    var cls=activeCls.find(function(c){return classSubjects(c).includes(sk);});
-    var def=cls?subjectDef(sk,cls):{icon:'',name:sk};
+    var def=subjectDef(sk,cls1)||{icon:'',name:sk};
     return '<option value="'+sk+'"'+(sk===curSk?' selected':'')+'>'+def.icon+' '+def.name+'</option>';
   }).join('');
+  var yrOpts=YEARS.map(function(y){return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>ÅK '+y+'</option>';}).join('');
 
-  var yrOpts=[7,8,9].map(function(y){
-    return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>ÅK '+y+'</option>';
-  }).join('');
-
-  var modeOpts=[
-    {v:'helhets',l:'Helhetsbedömning'},
-    {v:'final-HT',l:'Terminsbetyg HT'},
-    {v:'final-VT',l:'Terminsbetyg VT'},
-    {v:'moments',l:'Alla moment'}
-  ].map(function(o){
-    return '<option value="'+o.v+'"'+(o.v===curMode?' selected':'')+'>'+o.l+'</option>';
-  }).join('');
-
-  var aoOpts=(curMode==='helhets'||curMode==='moments')
-    ?'<option value="">Alla AO</option>'+aoNames.map(function(n){
-        return '<option value="'+esc(n)+'"'+(n===curAo?' selected':'')+'>'+esc(n)+'</option>';
-      }).join('')
-    :'';
-
-  var aoSel=(curMode==='helhets'||curMode==='moments')
-    ?'<select id="ao-area" onchange="renderStatTab()" style="'+selStyle+'">'+aoOpts+'</select>'
-    :'';
-
-  var ctrl=renderStatInfo('areas')
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">'
+  var ctrl='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">'
+    +'<select id="ao-cls1" onchange="renderStatTab()" style="'+selStyle+'">'+cls1Sel+'</select>'
+    +'<span style="color:var(--text-muted);font-size:.8rem;font-weight:600">vs</span>'
+    +'<select id="ao-cls2" onchange="renderStatTab()" style="'+selStyle+'">'+cls2Sel+'</select>'
     +'<select id="ao-sk" onchange="renderStatTab()" style="'+selStyle+'">'+subOpts+'</select>'
     +'<select id="ao-yr" onchange="renderStatTab()" style="'+selStyle+'">'+yrOpts+'</select>'
-    +'<select id="ao-mode" onchange="renderStatTab()" style="'+selStyle+'">'+modeOpts+'</select>'
-    +aoSel
     +'</div>';
 
-  if(!activeCls.length||!allSubs.length)
-    return ctrl+'<div style="padding:12px;color:var(--text-muted);font-size:.82rem">Inga aktiva klasser med betyg hittades.</div>';
+  var areas1=(cls1.areas[curSk]||{})[curYr]||[];
+  var areas2=(cls2.areas[curSk]||{})[curYr]||[];
+  if(!areas1.length)return renderStatInfo('areas')+ctrl+'<p class="text-sm text-muted" style="padding:16px">Inga arbetsområden för '+esc(cls1.name)+' i valt ämne/år.</p>';
 
-  // Bygg data per klass
-  function getGradesForCls(cls){
-    var areas=(cls.areas[curSk]||{})[curYr]||[];
-    var active=cls.students.filter(function(s){return !s.archived;});
-    var grades=[];
-    if(curMode==='helhets'){
-      for(var ai=0;ai<areas.length;ai++){
-        if(curAo&&areas[ai].name!==curAo)continue;
-        var mi=areas[ai].moments.findIndex(function(m){return m.toLowerCase().includes('helhet');});
-        if(mi<0)continue;
-        active.forEach(function(s){
-          var key=gKey(s.id,curSk,curYr,ai,mi);
-          var g=effectiveGrade(cls,key,cls.grades[key]||'');
-          if(g)grades.push(g);
-        });
-      }
-    } else if(curMode==='final-HT'||curMode==='final-VT'){
-      var term=curMode.split('-')[1];
-      active.forEach(function(s){
-        var g=((cls.finalGrades[s.id]||{})[curSk]||{})[curYr]?.[term]||'';
-        if(g)grades.push(g);
-      });
-    } else { // moments
-      var allAreas=(cls.areas[curSk]||{})[curYr]||[];
-      for(var ai2=0;ai2<allAreas.length;ai2++){
-        if(curAo&&allAreas[ai2].name!==curAo)continue;
-        for(var mi2=0;mi2<allAreas[ai2].moments.length;mi2++){
-          active.forEach(function(s){
-            var key=gKey(s.id,curSk,curYr,ai2,mi2);
-            var g=effectiveGrade(cls,key,cls.grades[key]||'');
-            if(g)grades.push(g);
-          });
-        }
-      }
-    }
-    return grades;
+  function getHelhets(cls,ai,areasArr){
+    if(ai>=areasArr.length)return[];
+    var mi=areasArr[ai].moments.findIndex(function(m){return m.toLowerCase().includes('helhet');});
+    if(mi<0)return[];
+    var active2=cls.students.filter(function(s){return !s.archived;});
+    return active2.map(function(s){
+      var key=gKey(s.id,curSk,curYr,ai,mi);
+      return effectiveGrade(cls,key,cls.grades[key]||'');
+    }).filter(Boolean);
   }
 
-  var rows='';
-  var anyData=false;
-  activeCls.forEach(function(cls){
-    if(!classSubjects(cls).includes(curSk))return;
-    var grades=getGradesForCls(cls);
-    if(!grades.length)return;
-    anyData=true;
+  function gradeStats(grades){
+    if(!grades.length)return null;
     var cnt={};grades.forEach(function(g){cnt[g]=(cnt[g]||0)+1;});
     var total=grades.length;
     var sum=0,n=0;grades.forEach(function(g){if(rank[g]!==undefined){sum+=rank[g];n++;}});
-    var avg=n?Math.round(sum/n*10)/10:null;
-    var pctGood=Math.round(order.filter(function(k){return['A','B','C','D','E'].includes(k);})
-      .reduce(function(s,k){return s+(cnt[k]||0);},0)/total*100);
-    var segs=order.filter(function(k){return cnt[k];}).map(function(k){
-      var pct=Math.round(cnt[k]/total*100);
-      return '<div class="dist-seg" style="width:'+pct+'%;background:'+GCOL[k]+'" title="'+gradeLabel(k)+': '+cnt[k]+' ('+pct+'%)'+'"><span class="dist-seg-label">'+(pct>7?gradeLabel(k):'')+'</span></div>';
-    }).join('');
-    var pills=order.filter(function(k){return cnt[k];}).map(function(k){
-      return '<span class="dist-bar-mini-item"><span class="dist-bar-mini-dot" style="background:'+GCOL[k]+'"></span>'+gradeLabel(k)+' '+cnt[k]+'</span>';
-    }).join('');
-    rows+='<div class="dist-bar-wrap" style="margin-bottom:12px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
-      +'<span style="font-weight:700;font-size:.85rem">'+esc(cls.name)+(cls.year?' <span style="font-weight:400;color:var(--text-muted);font-size:.76rem">('+esc(cls.year)+')</span>':'')+'</span>'
-      +'<span style="display:flex;gap:10px;font-size:.73rem;color:var(--text-muted)">'
-      +'<span>'+total+' betyg</span>'
-      +'<span style="color:'+(pctGood>=80?'#16a34a':pctGood<50?'#dc2626':'var(--text)')+'"><strong>'+pctGood+'%</strong> \u2265E</span>'
-      +(avg!==null?'<span>snitt <strong>'+avg+'</strong></span>':'')
-      +'</span></div>'
-      +'<div class="dist-bar">'+segs+'</div>'
-      +'<div class="dist-bar-mini">'+pills+'</div>'
-      +'</div>';
-  });
+    var pctGood=Math.round(order.filter(function(k){return['A','B','C','D','E'].includes(k);}).reduce(function(s,k){return s+(cnt[k]||0);},0)/total*100);
+    return{cnt:cnt,total:total,avg:n?Math.round(sum/n*10)/10:null,pctGood:pctGood};
+  }
 
-  if(!anyData){
-    var hint=curMode==='helhets'?'helhetsbedömningar':curMode==='moments'?'momentbetyg':'terminsbetyg';
-    return ctrl+'<div style="padding:14px;background:var(--surface2);border-radius:8px;font-size:.82rem;color:var(--text-muted)">'
-      +'Inga '+hint+' hittades för valt urval. '
-      +(curMode==='helhets'?'Kontrollera att helhetsbedömningar är satta på elever i de valda klasserna.':
-        curMode.startsWith('final')?'Terminsbetyg sätts i Översikt-fliken.':'Kontrollera att momentbetyg är registrerade.')
+  function distCol(stats,clsName,clsYear){
+    if(!stats)return '<div style="padding:10px 12px;color:var(--text-muted);font-size:.78rem">Inga betyg</div>';
+    var segs=order.filter(function(k){return stats.cnt[k];}).map(function(k){
+      var pct=Math.round(stats.cnt[k]/stats.total*100);
+      return '<div class="dist-seg" style="width:'+pct+'%;background:'+GCOL[k]+'" title="'+gradeLabel(k)+': '+stats.cnt[k]+' ('+pct+'%)"><span class="dist-seg-label">'+(pct>8?gradeLabel(k):'')+'</span></div>';
+    }).join('');
+    var pills=order.filter(function(k){return stats.cnt[k];}).map(function(k){
+      return '<span style="font-size:.63rem;padding:1px 5px;border-radius:8px;background:'+GCOL[k]+'18;color:'+GCOL[k]+';border:1px solid '+GCOL[k]+'55;font-weight:700">'+gradeLabel(k)+' '+stats.cnt[k]+'</span>';
+    }).join(' ');
+    return '<div style="padding:10px 12px">'
+      +'<div style="font-size:.72rem;font-weight:600;margin-bottom:6px;color:var(--accent)">'+esc(clsName)+(clsYear?' ('+clsYear+')':'')+'</div>'
+      +'<div class="dist-bar" style="margin-bottom:4px">'+segs+'</div>'
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:3px">'+pills+'</div>'
+      +'<div style="font-size:.68rem;color:var(--text-muted)">snitt <strong>'+(stats.avg!==null?stats.avg:'–')+'</strong> · '+stats.pctGood+'% ≥E · '+stats.total+' betyg</div>'
       +'</div>';
   }
 
-  var legend=order.map(function(k){
-    return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;margin-right:10px"><span style="width:10px;height:10px;border-radius:2px;background:'+GCOL[k]+';display:inline-block"></span>'+gradeLabel(k)+'</span>';
-  }).join('');
+  var sections='';
+  for(var ai=0;ai<areas1.length;ai++){
+    var aname=areas1[ai].name;
+    var st1=gradeStats(getHelhets(cls1,ai,areas1));
+    var ai2=areas2.findIndex(function(a){return a.name===aname;});
+    if(ai2<0)ai2=ai;
+    var st2=gradeStats(getHelhets(cls2,Math.min(ai2,areas2.length-1),areas2));
+    sections+='<div style="margin-bottom:14px;border:1px solid var(--border-soft);border-radius:10px;overflow:hidden">'
+      +'<div style="padding:8px 12px;background:var(--surface2);font-weight:700;font-size:.82rem;border-bottom:1px solid var(--border-soft)">'+esc(aname)+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:none">'
+      +'<div style="border-right:1px solid var(--border-soft)">'+distCol(st1,cls1.name,cls1.year)+'</div>'
+      +'<div>'+distCol(st2,cls2.name,cls2.year)+'</div>'
+      +'</div></div>';
+  }
 
-  return ctrl+rows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-soft)">'+legend+'</div>';
+  if(!sections)sections='<p class="text-sm text-muted" style="padding:16px">Inga helhetsbedömningar att visa.</p>';
+  return renderStatInfo('areas')+ctrl+sections;
 }
 
 
