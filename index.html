@@ -2051,7 +2051,10 @@ function renderGradeTab(cls,sk){
     if(cls.retakes[k]&&!((cls.omprovResults||{})[k]||[]).length)
       pendingOmprov.push({name:s.name,moment:areas[ai2].moments[mi2],grade:cls.grades[k]||''});
   }
-  const retakeSummary='';  const absWarnBar=absWarnStudents.length?`<div class="absence-warn-bar">⚠ <strong>Frånvarovarning (≥${db.absenceLimit||15}h ogiltig):</strong> ${absWarnStudents.map(s=>esc(s.name)).join(', ')}</div>`:'';
+  const retakeSummary='';
+  // Bygg absWarnStudents från eleverna i klassen
+  const absWarnStudents=cls.students.filter(s=>!s.archived&&absenceWarn(cls,s.id,yr));
+  const absWarnBar=absWarnStudents.length?`<div class="absence-warn-bar">⚠ <strong>Frånvarovarning (≥${db.absenceLimit||15}h ogiltig):</strong> ${absWarnStudents.map(s=>esc(s.name)).join(', ')}</div>`:'';
 
   return`
   <div class="card">
@@ -4251,6 +4254,14 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v132',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔧', text:'Buggfix: absWarnStudents inte definierad — orsakade att ämnesflikar inte renderades.' },
+    ]
+  },
+  {
     version: 'v131',
     label: 'Senaste',
     date: '2026-03',
@@ -4526,7 +4537,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v131';
+const LATEST_VERSION = 'v132';
 
 function openReleaseNotes(){
   openSettings();
