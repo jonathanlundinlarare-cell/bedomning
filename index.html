@@ -1503,20 +1503,19 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
 <div id="pdf-container" class="pdf-only"></div>
 
 <script>
-/* STAT INFO */
 var STAT_INFO={
-  'class':   {icon:'🎓',title:'Klassbild',   text:'Sammanfattning av klassens betygsläge — KPI-kort, betygsdistribution per ämne/år, andel godkända. Växla terminsbetyg/helhetsbedömningar.'},
-  'risk':    {icon:'⚠', title:'Riskzon',     text:'Elever som riskerar att inte nå E — terminsbetyg under E, helhetsbedömningar F/E– och hög ogiltig frånvaro.'},
-  'todo':    {icon:'📋',title:'Att göra',    text:'Konkreta åtgärder: omprov, F-betyg, kompletteringar. E– visas inte här men räknas i riskzon. Kryssa av hanterade ärenden.'},
-  'deep':    {icon:'🔬',title:'Fördjupning', text:'Jämför betygsfördelning och frånvaro per kön eller SvA. Välj ämne, år, betygskälla och AO. Snittbetyg: A=6, B=5 ... F=0.'},
+  'class':   {icon:'🎓',title:'Klassbild',   text:'Sammanfattning av klassens betygsläge — KPI-kort, betygsdistribution per ämne/år, andel godkända.'},
+  'risk':    {icon:'⚠', title:'Riskzon',     text:'Elever som riskerar att inte nå E — terminsbetyg under E, helhetsbedömningar F/E– och hög frånvaro.'},
+  'todo':    {icon:'📋',title:'Att göra',    text:'Omprov, F-betyg och kompletteringar. E– visas inte här. Kryssa av hanterade ärenden.'},
+  'deep':    {icon:'🔬',title:'Fördjupning', text:'Jämför betygsfördelning per kön eller SvA. Välj ämne, år, betygskälla och AO.'},
   'compare': {icon:'⚖', title:'Jämför klasser', text:'Ställ klasser mot varandra för ett ämne och år. Välj Momentbetyg om terminsbetyg saknas.'},
-  'areas':   {icon:'📐',title:'Jämför AO',   text:'Välj två klasser, ämne och år — se helhetsbedömningar per arbetsområde sida vid sida.'},
-  'coverage':{icon:'📚',title:'Kursplan',    text:'Hur väl täcker undervisningen det centrala innehållet (LGR22)? Koppla AO till kursplanens delar.'},
-  'print':   {icon:'🖨', title:'Utskrift',   text:'Generera rapporter, granska förhandsvisningen och skriv ut.'},
+  'areas':   {icon:'📐',title:'Jämför AO',   text:'Välj två klasser, ämne och år — se helhetsbedömningar per AO sida vid sida.'},
+  'coverage':{icon:'📚',title:'Kursplan',    text:'Hur väl täcker undervisningen centralt innehåll (LGR22)?'},
+  'print':   {icon:'🖨', title:'Utskrift',   text:'Generera rapporter och skriv ut.'},
 };
 function renderStatInfo(tab){
   var info=STAT_INFO[tab];if(!info)return'';
-  return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:var(--accent-lt);border-radius:8px;margin-bottom:14px;border:1px solid rgba(14,165,233,.18)">'
+  return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:var(--accent-lt);border-radius:8px;margin-bottom:14px">'
     +'<span style="font-size:1rem;flex-shrink:0">'+info.icon+'</span>'
     +'<div><div style="font-size:.78rem;font-weight:700;color:var(--accent);margin-bottom:2px">'+info.title+'</div>'
     +'<div style="font-size:.75rem;color:var(--text-muted);line-height:1.5">'+info.text+'</div>'
@@ -4320,9 +4319,9 @@ const RELEASES = [
     label: 'Senaste',
     date: '2026-03',
     items: [
-      { type:'fixed',    icon:'🔧', text:'Kritisk bugg fixad: appen kraschade vid start p.g.a. saknad renderStatInfo-funktion.' },
-      { type:'improved', icon:'📐', text:'Jämför AO: välj fritt klass 1 vs klass 2, ämne och år med dropdowns.' },
-      { type:'added',    icon:'🔬', text:'Fördjupning: AO-dropdown visas automatiskt vid Helhetsbedömning.' },
+      { type:'fixed',    icon:'🔧', text:'Appen kraschar inte längre vid start.' },
+      { type:'improved', icon:'📐', text:'Jämför AO: fria dropdowns för klass 1 vs klass 2.' },
+      { type:'added',    icon:'🔬', text:'Fördjupning: AO-dropdown vid Helhetsbedömning.' },
       { type:'added',    icon:'💡', text:'Förklaringsruta per statistikflik.' },
     ]
   },
@@ -7657,19 +7656,19 @@ function renderStatDeep(){
 
   var curAo=document.getElementById('deep-ao')?.value||'__all__';
   var deepAreas=(c.areas[curSk]||{})[curYr]||[];
-  var aoOpts='<option value="__all__"'+(curAo==='__all__'?' selected':'')+'>Alla arbetsområden</option>'
-    +deepAreas.map(function(a){return '<option value="'+esc(a.name)+'"'+(curAo===a.name?' selected':'')+'>'+esc(a.name)+'</option>';}).join('');
+  var aoOpts='<option value="__all__"'+(curAo==='__all__'?' selected':'')+'>Alla arbetsomr\u00e5den<\/option>'
+    +deepAreas.map(function(a){return '<option value="'+esc(a.name)+'"'+(curAo===a.name?' selected':'')+'>'+esc(a.name)+'<\/option>';}).join('');
 
   function getGrades(sid){
     var result=[];
     if(curMode==='helhets'){
-      for(var ai=0;ai<deepAreas.length;ai++){
-        if(curAo!=='__all__'&&deepAreas[ai].name!==curAo)continue;
-        for(var mi=0;mi<deepAreas[ai].moments.length;mi++){
-          if(!deepAreas[ai].moments[mi].toLowerCase().includes('helhet'))continue;
-          var key=gKey(sid,curSk,curYr,ai,mi);
+      for(var ai2=0;ai2<deepAreas.length;ai2++){
+        if(curAo!=='__all__'&&deepAreas[ai2].name!==curAo)continue;
+        for(var mi2=0;mi2<deepAreas[ai2].moments.length;mi2++){
+          if(!deepAreas[ai2].moments[mi2].toLowerCase().includes('helhet'))continue;
+          var key=gKey(sid,curSk,curYr,ai2,mi2);
           var g=effectiveGrade(c,key,c.grades[key]||'');
-          if(g)result.push({grade:g,area:deepAreas[ai].name});
+          if(g)result.push({grade:g,area:deepAreas[ai2].name});
         }
       }
     } else if(curMode==='final-HT'||curMode==='final-VT'){
@@ -7801,98 +7800,244 @@ function renderStatDeep(){
 
 
 function renderStatAreas(){
-  if(db.classes.length<1)return renderStatInfo('areas')+'<p class="text-sm text-muted" style="padding:20px">Inga klasser.</p>';
+  if(db.classes.length<1)return renderStatInfo('areas')+'<p class="text-sm text-muted" style="padding:20px">Inga klasser.<\/p>';
   var selStyle='padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)';
   var GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
   var order=['A','B','C','D','E','E-','F','K'];
   var rank={A:6,B:5,C:4,D:3,E:2,'E-':1,F:0};
   var activeCls=db.classes.filter(function(cl){return !cl.archived;});
-  if(!activeCls.length)return renderStatInfo('areas')+'<p class="text-sm text-muted" style="padding:20px">Inga aktiva klasser.</p>';
-
+  if(!activeCls.length)return renderStatInfo('areas')+'<p class="text-sm text-muted" style="padding:20px">Inga aktiva klasser.<\/p>';
   var curCls1Id=document.getElementById('ao-cls1')?.value||activeCls[0].id;
   var curCls2Id=document.getElementById('ao-cls2')?.value||(activeCls.length>1?activeCls[1].id:activeCls[0].id);
   var cls1=db.classes.find(function(cl){return cl.id===curCls1Id;})||activeCls[0];
   var cls2=db.classes.find(function(cl){return cl.id===curCls2Id;})||activeCls[0];
-  var allSubsSet=new Set(classSubjects(cls1).concat(classSubjects(cls2)));
-  var allSubs=Array.from(allSubsSet);
-  var curSk=document.getElementById('ao-sk')?.value||allSubs[0]||'samhall';
+  var allSubsArr=Array.from(new Set(classSubjects(cls1).concat(classSubjects(cls2))));
+  var curSk=document.getElementById('ao-sk')?.value||allSubsArr[0]||'samhall';
   var curYr=parseInt(document.getElementById('ao-yr')?.value||'7');
-
-  var clsOpts=activeCls.map(function(cl){return '<option value="'+cl.id+'">'+esc(cl.name)+(cl.year?' ('+cl.year+')':'')+'</option>';}).join('');
+  var clsOpts=activeCls.map(function(cl){return '<option value="'+cl.id+'">'+esc(cl.name)+(cl.year?' ('+cl.year+')':'')+'<\/option>';}).join('');
   var cls1Sel=clsOpts.replace('value="'+curCls1Id+'"','value="'+curCls1Id+'" selected');
   var cls2Sel=clsOpts.replace('value="'+curCls2Id+'"','value="'+curCls2Id+'" selected');
-  var subOpts=allSubs.map(function(sk){
-    var def=subjectDef(sk,cls1)||{icon:'',name:sk};
-    return '<option value="'+sk+'"'+(sk===curSk?' selected':'')+'>'+def.icon+' '+def.name+'</option>';
-  }).join('');
-  var yrOpts=YEARS.map(function(y){return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>ÅK '+y+'</option>';}).join('');
-
+  var subOpts=allSubsArr.map(function(sk){var def=subjectDef(sk,cls1)||{icon:'',name:sk};return '<option value="'+sk+'"'+(sk===curSk?' selected':'')+'>'+def.icon+' '+def.name+'<\/option>';}).join('');
+  var yrOpts=YEARS.map(function(y){return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>\u00c5K '+y+'<\/option>';}).join('');
   var ctrl='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">'
-    +'<select id="ao-cls1" onchange="renderStatTab()" style="'+selStyle+'">'+cls1Sel+'</select>'
-    +'<span style="color:var(--text-muted);font-size:.8rem;font-weight:600">vs</span>'
-    +'<select id="ao-cls2" onchange="renderStatTab()" style="'+selStyle+'">'+cls2Sel+'</select>'
-    +'<select id="ao-sk" onchange="renderStatTab()" style="'+selStyle+'">'+subOpts+'</select>'
-    +'<select id="ao-yr" onchange="renderStatTab()" style="'+selStyle+'">'+yrOpts+'</select>'
-    +'</div>';
-
+    +'<select id="ao-cls1" onchange="renderStatTab()" style="'+selStyle+'">'+cls1Sel+'<\/select>'
+    +'<span style="color:var(--text-muted);font-size:.8rem;font-weight:600">vs<\/span>'
+    +'<select id="ao-cls2" onchange="renderStatTab()" style="'+selStyle+'">'+cls2Sel+'<\/select>'
+    +'<select id="ao-sk" onchange="renderStatTab()" style="'+selStyle+'">'+subOpts+'<\/select>'
+    +'<select id="ao-yr" onchange="renderStatTab()" style="'+selStyle+'">'+yrOpts+'<\/select>'
+    +'<\/div>';
   var areas1=(cls1.areas[curSk]||{})[curYr]||[];
   var areas2=(cls2.areas[curSk]||{})[curYr]||[];
-  if(!areas1.length)return renderStatInfo('areas')+ctrl+'<p class="text-sm text-muted" style="padding:16px">Inga arbetsområden för '+esc(cls1.name)+' i valt ämne/år.</p>';
-
-  function getHelhets(cls,ai,areasArr){
+  if(!areas1.length)return renderStatInfo('areas')+ctrl+'<p class="text-sm text-muted" style="padding:16px">Inga AO f\u00f6r '+esc(cls1.name)+'.<\/p>';
+  function getH(cls,ai,areasArr){
     if(ai>=areasArr.length)return[];
     var mi=areasArr[ai].moments.findIndex(function(m){return m.toLowerCase().includes('helhet');});
     if(mi<0)return[];
-    var active2=cls.students.filter(function(s){return !s.archived;});
-    return active2.map(function(s){
+    return cls.students.filter(function(s){return !s.archived;}).map(function(s){
       var key=gKey(s.id,curSk,curYr,ai,mi);
       return effectiveGrade(cls,key,cls.grades[key]||'');
     }).filter(Boolean);
   }
-
-  function gradeStats(grades){
+  function gStats(grades){
     if(!grades.length)return null;
     var cnt={};grades.forEach(function(g){cnt[g]=(cnt[g]||0)+1;});
-    var total=grades.length;
-    var sum=0,n=0;grades.forEach(function(g){if(rank[g]!==undefined){sum+=rank[g];n++;}});
-    var pctGood=Math.round(order.filter(function(k){return['A','B','C','D','E'].includes(k);}).reduce(function(s,k){return s+(cnt[k]||0);},0)/total*100);
-    return{cnt:cnt,total:total,avg:n?Math.round(sum/n*10)/10:null,pctGood:pctGood};
+    var total=grades.length,sum=0,n=0;
+    grades.forEach(function(g){if(rank[g]!==undefined){sum+=rank[g];n++;}});
+    var pctG=Math.round(order.filter(function(k){return['A','B','C','D','E'].includes(k);}).reduce(function(s,k){return s+(cnt[k]||0);},0)/total*100);
+    return{cnt:cnt,total:total,avg:n?Math.round(sum/n*10)/10:null,pctGood:pctG};
   }
-
-  function distCol(stats,clsName,clsYear){
-    if(!stats)return '<div style="padding:10px 12px;color:var(--text-muted);font-size:.78rem">Inga betyg</div>';
-    var segs=order.filter(function(k){return stats.cnt[k];}).map(function(k){
-      var pct=Math.round(stats.cnt[k]/stats.total*100);
-      return '<div class="dist-seg" style="width:'+pct+'%;background:'+GCOL[k]+'" title="'+gradeLabel(k)+': '+stats.cnt[k]+' ('+pct+'%)"><span class="dist-seg-label">'+(pct>8?gradeLabel(k):'')+'</span></div>';
-    }).join('');
-    var pills=order.filter(function(k){return stats.cnt[k];}).map(function(k){
-      return '<span style="font-size:.63rem;padding:1px 5px;border-radius:8px;background:'+GCOL[k]+'18;color:'+GCOL[k]+';border:1px solid '+GCOL[k]+'55;font-weight:700">'+gradeLabel(k)+' '+stats.cnt[k]+'</span>';
-    }).join(' ');
-    return '<div style="padding:10px 12px">'
-      +'<div style="font-size:.72rem;font-weight:600;margin-bottom:6px;color:var(--accent)">'+esc(clsName)+(clsYear?' ('+clsYear+')':'')+'</div>'
-      +'<div class="dist-bar" style="margin-bottom:4px">'+segs+'</div>'
-      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:3px">'+pills+'</div>'
-      +'<div style="font-size:.68rem;color:var(--text-muted)">snitt <strong>'+(stats.avg!==null?stats.avg:'–')+'</strong> · '+stats.pctGood+'% ≥E · '+stats.total+' betyg</div>'
-      +'</div>';
+  function dCol(stats,name,year){
+    if(!stats)return '<div style="padding:10px 12px;color:var(--text-muted);font-size:.78rem">Inga bety\u200bg<\/div>';
+    var segs=order.filter(function(k){return stats.cnt[k];}).map(function(k){var pct=Math.round(stats.cnt[k]/stats.total*100);return '<div class="dist-seg" style="width:'+pct+'%;background:'+GCOL[k]+'" title="'+gradeLabel(k)+': '+stats.cnt[k]+'"><span class="dist-seg-label">'+(pct>8?gradeLabel(k):'')+'<\/span><\/div>';}).join('');
+    var pills=order.filter(function(k){return stats.cnt[k];}).map(function(k){return '<span style="font-size:.63rem;padding:1px 5px;border-radius:8px;background:'+GCOL[k]+'18;color:'+GCOL[k]+';border:1px solid '+GCOL[k]+'55;font-weight:700">'+gradeLabel(k)+' '+stats.cnt[k]+'<\/span>';}).join(' ');
+    return '<div style="padding:10px 12px"><div style="font-size:.72rem;font-weight:600;margin-bottom:6px;color:var(--accent)">'+esc(name)+(year?' ('+year+')':'')+'<\/div><div class="dist-bar" style="margin-bottom:4px">'+segs+'<\/div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:3px">'+pills+'<\/div><div style="font-size:.68rem;color:var(--text-muted)">snitt <strong>'+(stats.avg!==null?stats.avg:'-')+'<\/strong> \u00b7 '+stats.pctGood+'% \u2265E \u00b7 '+stats.total+' betyg<\/div><\/div>';
   }
-
   var sections='';
   for(var ai=0;ai<areas1.length;ai++){
     var aname=areas1[ai].name;
-    var st1=gradeStats(getHelhets(cls1,ai,areas1));
-    var ai2=areas2.findIndex(function(a){return a.name===aname;});
-    if(ai2<0)ai2=ai;
-    var st2=gradeStats(getHelhets(cls2,Math.min(ai2,areas2.length-1),areas2));
-    sections+='<div style="margin-bottom:14px;border:1px solid var(--border-soft);border-radius:10px;overflow:hidden">'
-      +'<div style="padding:8px 12px;background:var(--surface2);font-weight:700;font-size:.82rem;border-bottom:1px solid var(--border-soft)">'+esc(aname)+'</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:none">'
-      +'<div style="border-right:1px solid var(--border-soft)">'+distCol(st1,cls1.name,cls1.year)+'</div>'
-      +'<div>'+distCol(st2,cls2.name,cls2.year)+'</div>'
-      +'</div></div>';
+    var st1=gStats(getH(cls1,ai,areas1));
+    var ai2x=areas2.findIndex(function(a){return a.name===aname;});
+    if(ai2x<0)ai2x=ai;
+    var st2=gStats(getH(cls2,Math.min(ai2x,areas2.length-1),areas2));
+    sections+='<div style="margin-bottom:14px;border:1px solid var(--border-soft);border-radius:10px;overflow:hidden"><div style="padding:8px 12px;background:var(--surface2);font-weight:700;font-size:.82rem;border-bottom:1px solid var(--border-soft)">'+esc(aname)+'<\/div><div style="display:grid;grid-template-columns:1fr 1fr"><div style="border-right:1px solid var(--border-soft)">'+dCol(st1,cls1.name,cls1.year)+'<\/div><div>'+dCol(st2,cls2.name,cls2.year)+'<\/div><\/div><\/div>';
   }
-
-  if(!sections)sections='<p class="text-sm text-muted" style="padding:16px">Inga helhetsbedömningar att visa.</p>';
+  if(!sections)sections='<p class="text-sm text-muted" style="padding:16px">Inga helhetsbedömningar.<\/p>';
   return renderStatInfo('areas')+ctrl+sections;
 }
 
 
+function buildAreaStats(cls, sk, yr, areas){
+  if(!areas.length)return'';
+  const active=cls.students.filter(s=>!s.archived);
+  const GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
+  const order=['A','B','C','D','E','E-','F','K'];
+
+  let html='<div class="area-stats-row no-print">';
+
+  for(let ai=0;ai<areas.length;ai++){
+    const area=areas[ai];
+
+    // Samla betyg per moment
+    const momentStats=area.moments.map((mname,mi)=>{
+      const isHelhets=mname.toLowerCase().includes('helhet');
+      const grades=active.map(s=>{
+        const key=gKey(s.id,sk,yr,ai,mi);
+        return effectiveGrade(cls,key,cls.grades[key]||'');
+      }).filter(Boolean);
+      return{mname,mi,isHelhets,grades};
+    }).filter(m=>m.grades.length);
+
+    if(!momentStats.length)continue;
+
+    // Bygg rader per moment
+    const momentRows=momentStats.map(({mname,isHelhets,grades})=>{
+      const cnt={};grades.forEach(g=>cnt[g]=(cnt[g]||0)+1);
+      const pills=order.filter(k=>cnt[k]).map(k=>
+        `<span style="display:inline-flex;align-items:center;gap:2px;font-size:.63rem;` +
+        `padding:1px 5px;border-radius:8px;background:${GCOL[k]}18;color:${GCOL[k]};` +
+        `border:1px solid ${GCOL[k]}55;font-weight:700">${gradeLabel(k)} ` +
+        `<span style="font-weight:400">${cnt[k]}</span></span>`
+      ).join('');
+      const nameStyle=isHelhets
+        ?'font-size:.7rem;font-weight:700;color:var(--text);min-width:90px'
+        :'font-size:.68rem;color:var(--text-muted);min-width:90px';
+      return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;` +
+        `${isHelhets?'border-top:1px solid var(--border-soft);margin-top:3px;padding-top:4px':''}">`+
+        `<span style="${nameStyle};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">` +
+        `${isHelhets?'⭐ ':''}${esc(mname)}</span>`+
+        `<div style="display:flex;gap:3px;flex-wrap:wrap">${pills}</div></div>`;
+    }).join('');
+
+    html+=`<div style="flex:1;min-width:160px;padding:8px 10px;background:var(--surface);` +
+      `border:1px solid var(--border-soft);border-radius:8px">`+
+      `<div style="font-size:.74rem;font-weight:700;color:var(--text);margin-bottom:5px;` +
+      `white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(area.name)}</div>`+
+      momentRows+`</div>`;
+  }
+  html+='</div>';
+  return html;
+}
+
+
+
+
+(async function boot(){
+  // ── Electron window focus recovery ─────────────────────────────────
+  // When OS gives focus back (after minimize/alt-tab), Electron sometimes
+  // leaves the renderer unable to receive input clicks. Sending window-focused
+  // from main.js triggers this handler which restores proper input focus.
+  if(window.electronAPI?.onCheckUpdate){
+    window.electronAPI.onCheckUpdate(()=>checkHotUpdate(true));
+  }
+  if(window.electronAPI?.onWindowFocused){
+    window.electronAPI.onWindowFocused(()=>{
+      const a=document.activeElement;
+      if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')){
+        a.blur();setTimeout(()=>a.focus(),50);
+      } else {
+        // Force a minimal focus cycle on the body to flush Electron's input state
+        document.body.setAttribute('tabindex','-1');
+        document.body.focus();
+        document.body.removeAttribute('tabindex');
+      }
+    });
+  }
+
+  await loadFromDisk();
+  if(!db.customGrades)db.customGrades=[];
+  if(!db.absenceLimit)db.absenceLimit=15;
+  if(!db.settings)db.settings={};
+  if(!db.changelog)db.changelog=[];
+  if(!db.curriculum)db.curriculum={};
+  if(!db.todoHandled)db.todoHandled={};
+  // Default omprov grades: F and K (not E-)
+  if(!Array.isArray(db.retakeGrades))db.retakeGrades=['F','K'];
+  // Default risk grades: F and E-
+  if(!Array.isArray(db.riskGrades))db.riskGrades=['F','E-'];
+  if(!db.curriculumLinks)db.curriculumLinks={};
+  if(!db.criteriaLinksArea)db.criteriaLinksArea={};
+  markSaved(); // start clean
+  renderSidebar();
+  if(db.lastClass&&getClass(db.lastClass))selectClass(db.lastClass);
+  else if(db.classes.length)selectClass(db.classes[0].id);
+  else renderSubjectTabs(); // empty state — still render (empty) tabs
+  // Schedule weekly auto-backup check
+  autoBackup();
+  setInterval(autoBackup,60*60*1000); // check every hour
+  checkUnreadReleaseNotes();
+  updateAdaptBtn();
+  updateRecomBtn();
+  updateCurrStatusBtn();
+  updateCurrTopbarBtn();
+  initTheme();
+  // Kolla efter uppdatering efter 3 sekunder
+  setTimeout(checkHotUpdate, 3000);
+  if(!db.criteriaResults){}; // init lazily per class
+  if(!db.criteriaLinksArea)db.criteriaLinksArea={};
+  if(!db.adaptations)db.adaptations={};
+})();
+</script>
+
+<!-- ═══════════════ INSTÄLLNINGAR MODAL ═══════════════ -->
+<div class="modal-overlay" id="modal-settings" onclick="if(event.target===this)closeModal('modal-settings')">
+  <div class="modal" style="width:560px" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="margin:0">⚙ Inställningar</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settings')">✕</button>
+    </div>
+
+    <!-- Flikar -->
+    <div style="display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:18px">
+      <button class="stab active" id="stab-settings-utseende"  onclick="showSettingsTab('utseende')">🎨 Utseende</button>
+      <button class="stab"        id="stab-settings-betyg"     onclick="showSettingsTab('betyg')">📊 Betyg</button>
+      <button class="stab"        id="stab-settings-funktioner"onclick="showSettingsTab('funktioner')">🔧 Funktioner</button>
+      <button class="stab"        id="stab-settings-data"      onclick="showSettingsTab('data')">💾 Data</button>
+      <button class="stab"        id="stab-settings-om"        onclick="showSettingsTab('om')" style="position:relative">
+        🆕 Om
+        <span class="news-unread" id="news-unread-dot-modal"></span>
+      </button>
+    </div>
+
+    <div id="settings-tab-body"></div>
+
+    <div class="modal-footer" style="margin-top:16px">
+      <button class="btn btn-primary" onclick="closeModal('modal-settings')">Stäng</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- FÖRHANDSVISNING -->
+<div class="preview-overlay" id="preview-overlay" onclick="if(event.target===this)closePreview()">
+  <div class="preview-wrap" onclick="event.stopPropagation()">
+    <div class="preview-head">
+      <span class="preview-head-title" id="preview-title">Förhandsvisning</span>
+      <button class="btn btn-primary btn-sm" onclick="printCurrentPreview()">🖨 Skriv ut</button>
+      <button class="btn btn-ghost btn-sm" onclick="closePreview()">✕</button>
+    </div>
+    <div class="preview-content" id="preview-content"></div>
+  </div>
+</div>
+
+<!-- FLYTTA ELEV -->
+<div class="modal-overlay" id="modal-move-student" onclick="if(event.target===this)closeModal('modal-move-student')">
+  <div class="modal" style="width:420px" onclick="event.stopPropagation()">
+    <h2>↔ Flytta elev</h2>
+    <p class="text-sm text-muted mb-3">Eleven och all data (betyg, omprov, anteckningar, frånvaro) flyttas till vald klass.</p>
+    <div class="fg">
+      <label class="fg-label">Elev</label>
+      <div id="move-student-name" style="font-weight:600;padding:6px 0"></div>
+    </div>
+    <div class="fg" style="margin-top:10px">
+      <label class="fg-label">Flytta till klass</label>
+      <select id="move-target-class" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.85rem;background:var(--surface)">
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-move-student')">Avbryt</button>
+      <button class="btn btn-primary" onclick="confirmMoveStudent()">Flytta →</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
