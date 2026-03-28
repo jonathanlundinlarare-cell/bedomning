@@ -3025,6 +3025,9 @@ function renderStatPrint(){
     <div class="print-option" onclick="printAreaGradesReport()"><span class="print-option-icon">📝</span><div class="print-option-info"><div class="print-option-title">Arbetsområdesrapport — helhetsbedömningar</div><div class="print-option-desc">Alla helhetsbedömningar per arbetsområde, ämne och år. Bra för fortlöpande uppföljning.</div></div><button class="btn btn-primary btn-sm">🖨 Skriv ut</button></div>
     <div class="print-option" onclick="printAllStudentReports()"><span class="print-option-icon">👤</span><div class="print-option-info"><div class="print-option-title">Elevrapporter — alla elever</div><div class="print-option-desc">En sida per elev med betyg, helhetsbedömningar, frånvaro och anpassningar. Lämplig för IUP.</div></div><button class="btn btn-primary btn-sm">🖨 Skriv ut</button></div>
 
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);margin:14px 0 6px">Statistikrapporter</div>
+    <div class="print-option" onclick="openHelhetsStatReport()"><span class="print-option-icon">📊</span><div class="print-option-info"><div class="print-option-title">Helhetsbedömning — statistikrapport</div><div class="print-option-desc">Välj arbetsområde och se tre cirkeldiagram: hela klassen, tjejer och killar. Visar procent och antal per betyg.</div></div><button class="btn btn-primary btn-sm">🖨 Skapa</button></div>
+
     <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);margin:14px 0 6px">Uppföljning & analys</div>
     <div class="print-option" onclick="printRiskReport()"><span class="print-option-icon">⚠</span><div class="print-option-info"><div class="print-option-title">Riskzonrapport</div><div class="print-option-desc">Elever med F, E– i terminsbetyg ELLER helhetsbedömning, plus hög frånvaro.</div></div><button class="btn btn-primary btn-sm">🖨 Skriv ut</button></div>
     <div class="print-option" onclick="printTodoReport()"><span class="print-option-icon">📋</span><div class="print-option-info"><div class="print-option-title">Att göra-lista</div><div class="print-option-desc">Alla omprov, kompletteringar och F-betyg som behöver åtgärdas.</div></div><button class="btn btn-primary btn-sm">🖨 Skriv ut</button></div>
@@ -4315,6 +4318,22 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v140',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'added', icon:'📊', text:'Ny statistikrapport: Helhetsbedömning med tre cirkeldiagram (hela klassen, tjejer, killar) — välj ämne, år och AO, förhandsgranska och skriv ut.' },
+    ]
+  },
+  {
+    version: 'v139',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔍', text:'Debug-knapp i Inställningar > Data — visar versionsnummer och om Electron-API fungerar.' },
+    ]
+  },
+  {
     version: 'v138',
     label: 'Senaste',
     date: '2026-03',
@@ -4651,7 +4670,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v138';
+const LATEST_VERSION = 'v140';
 
 function openReleaseNotes(){
   openSettings();
@@ -6853,8 +6872,12 @@ const HOT_UPDATE_URL = 'https://raw.githubusercontent.com/jonathanlundinlarare-c
 const CURRENT_VERSION = LATEST_VERSION; // ex 'v27'
 
 async function checkHotUpdate(manual=false){
+  if(manual){
+    // Debug: visa alltid vad som händer
+    showToast('isElectron='+isElectron+' electronAPI='+(typeof window.electronAPI)+' v='+CURRENT_VERSION);
+  }
   if(!isElectron){
-    if(manual)showToast('Uppdatering fungerar bara i Electron-appen');
+    if(manual)showToast('Kör inte i Electron — uppdatering ej tillgänglig');
     return;
   }
   if(manual)showToast('Söker efter uppdatering...');
@@ -7143,7 +7166,8 @@ function renderSettingsData(){
     <div style="border-top:1px solid var(--border-soft);padding-top:14px" class="fg">
       <label class="fg-label">🔄 Uppdateringar</label>
       <p class="text-xs text-muted">Appen uppdateras automatiskt via GitHub.</p>
-      <button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="checkHotUpdate(true)">Sök efter uppdatering</button>
+      <button class="btn btn-primary btn-sm" style="margin-top:6px" onclick="checkHotUpdate(true)">🔄 Sök efter uppdatering</button>
+      <button class="btn btn-outline btn-sm" style="margin-top:6px;margin-left:6px" onclick="showToast('Version: '+CURRENT_VERSION+' | Electron: '+isElectron+' | API: '+(typeof window.electronAPI))">🔍 Debug info</button>
     </div>
   </div>`;
 }
@@ -7939,6 +7963,154 @@ function buildAreaStats(cls, sk, yr, areas){
 
 
 
+
+
+/* ================================================================
+   HELHETSBEDÖMNING STATISTIKRAPPORT
+================================================================ */
+function openHelhetsStatReport(){
+  const c=currentClass();
+  if(!c){showToast('Välj en klass först');return;}
+  const subs=classSubjects(c);
+  if(!subs.length){showToast('Klassen har inga ämnen');return;}
+
+  // Bygg modal för val av ämne + AO
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center';
+  
+  const subOpts=subs.map(sk=>{const d=subjectDef(sk,c);return `<option value="${sk}">${d.icon} ${d.name}</option>`;}).join('');
+  const yrOpts=YEARS.map(y=>`<option value="${y}">ÅK ${y}</option>`).join('');
+
+  modal.innerHTML=`
+    <div style="background:var(--surface);border-radius:12px;padding:24px;min-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <h3 style="margin:0 0 16px;font-size:1rem">📊 Välj för statistikrapport</h3>
+      <div class="fg"><label class="fg-label">Ämne</label>
+        <select id="hsr-sk" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;background:var(--surface)">${subOpts}</select></div>
+      <div class="fg" style="margin-top:10px"><label class="fg-label">Årskurs</label>
+        <select id="hsr-yr" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;background:var(--surface)">${yrOpts}</select></div>
+      <div class="fg" style="margin-top:10px"><label class="fg-label">Arbetsområde</label>
+        <select id="hsr-ao" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;background:var(--surface)"></select></div>
+      <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="this.closest('div[style*=inset]').remove()">Avbryt</button>
+        <button class="btn btn-primary" onclick="generateHelhetsStatReport(this.closest('div[style*=inset]'))">Skapa rapport →</button>
+      </div>
+    </div>`;
+  
+  document.body.appendChild(modal);
+
+  // Fyll AO-dropdown
+  function updateAoOpts(){
+    const sk=modal.querySelector('#hsr-sk').value;
+    const yr=parseInt(modal.querySelector('#hsr-yr').value);
+    const areas=(c.areas[sk]||{})[yr]||[];
+    const sel=modal.querySelector('#hsr-ao');
+    sel.innerHTML=areas.map((a,i)=>`<option value="${i}">${esc(a.name)}</option>`).join('');
+    if(!sel.options.length)sel.innerHTML='<option>Inga arbetsområden</option>';
+  }
+  modal.querySelector('#hsr-sk').onchange=updateAoOpts;
+  modal.querySelector('#hsr-yr').onchange=updateAoOpts;
+  updateAoOpts();
+}
+
+function generateHelhetsStatReport(modal){
+  const c=currentClass();
+  const sk=modal.querySelector('#hsr-sk').value;
+  const yr=parseInt(modal.querySelector('#hsr-yr').value);
+  const ai=parseInt(modal.querySelector('#hsr-ao').value);
+  modal.remove();
+
+  const areas=(c.areas[sk]||{})[yr]||[];
+  if(ai>=areas.length){showToast('Ogiltigt arbetsområde');return;}
+  const area=areas[ai];
+  const mi=area.moments.findIndex(m=>m.toLowerCase().includes('helhet'));
+  if(mi<0){showToast('Ingen helhetsbedömning i detta arbetsområde');return;}
+
+  const def=subjectDef(sk,c);
+  const active=c.students.filter(s=>!s.archived);
+  const GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
+  const order=['A','B','C','D','E','E-','F','K'];
+
+  function getGrades(students){
+    return students.map(s=>{
+      const key=gKey(s.id,sk,yr,ai,mi);
+      return effectiveGrade(c,key,c.grades[key]||'');
+    }).filter(Boolean);
+  }
+
+  const girls=active.filter(s=>s.gender==='f');
+  const boys=active.filter(s=>s.gender==='m');
+  const groups=[
+    {label:'Hela klassen',grades:getGrades(active),color:'#0ea5e9',n:active.length},
+    {label:'Tjejer',grades:getGrades(girls),color:'#ec4899',n:girls.length},
+    {label:'Killar',grades:getGrades(boys),color:'#3b82f6',n:boys.length},
+  ];
+
+  function buildPieChart(grades, title, color){
+    if(!grades.length)return `<div style="text-align:center;padding:40px 20px;color:#999;font-size:13px">
+      <div style="font-weight:700;margin-bottom:8px;font-size:14px">${title}</div>
+      Inga betyg registrerade</div>`;
+    
+    const cnt={};grades.forEach(g=>cnt[g]=(cnt[g]||0)+1);
+    const total=grades.length;
+    const rank={A:6,B:5,C:4,D:3,E:2,'E-':1,F:0,K:0};
+    let sum=0,n=0;grades.forEach(g=>{if(rank[g]!==undefined){sum+=rank[g];n++;}});
+    const avg=n?Math.round(sum/n*10)/10:null;
+    const pctGood=Math.round(order.filter(k=>['A','B','C','D','E'].includes(k)).reduce((s,k)=>s+(cnt[k]||0),0)/total*100);
+
+    // SVG pie chart
+    const cx=100,cy=100,r=80;
+    let slices='';let startAngle=-Math.PI/2;
+    const gradeData=order.filter(k=>cnt[k]).map(k=>({k,v:cnt[k],pct:cnt[k]/total}));
+    gradeData.forEach(({k,v,pct})=>{
+      const angle=pct*2*Math.PI;
+      const endAngle=startAngle+angle;
+      const x1=cx+r*Math.cos(startAngle),y1=cy+r*Math.sin(startAngle);
+      const x2=cx+r*Math.cos(endAngle),y2=cy+r*Math.sin(endAngle);
+      const large=angle>Math.PI?1:0;
+      const midA=startAngle+angle/2;
+      const tx=cx+(r*0.65)*Math.cos(midA),ty=cy+(r*0.65)*Math.sin(midA);
+      slices+=`<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="${GCOL[k]||'#888'}"/>`;
+      if(pct>0.06)slices+=`<text x="${tx}" y="${ty+4}" text-anchor="middle" font-size="11" font-weight="700" fill="white">${Math.round(pct*100)}%</text>`;
+      startAngle=endAngle;
+    });
+    
+    // Legend
+    const legend=order.filter(k=>cnt[k]).map(k=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <div style="width:14px;height:14px;border-radius:3px;background:${GCOL[k]};flex-shrink:0"></div>
+        <span style="font-size:12px;font-weight:700;color:${GCOL[k]};min-width:28px">${gradeLabel(k)}</span>
+        <span style="font-size:12px;color:#333">${cnt[k]} st (${Math.round(cnt[k]/total*100)}%)</span>
+      </div>`).join('');
+
+    return `<div style="break-inside:avoid;border:1px solid #ddd;border-radius:10px;padding:16px;background:#fff">
+      <div style="font-size:14px;font-weight:700;color:#333;margin-bottom:2px;text-align:center">${title}</div>
+      <div style="font-size:11px;color:#666;text-align:center;margin-bottom:12px">${total} elever med betyg${avg!==null?' · snitt '+avg:''} · ${pctGood}% godkända</div>
+      <div style="display:flex;gap:16px;align-items:center;justify-content:center">
+        <svg viewBox="0 0 200 200" width="160" height="160">${slices}</svg>
+        <div>${legend}</div>
+      </div>
+    </div>`;
+  }
+
+  const chartHTML=groups.map(g=>buildPieChart(g.grades,g.label+' ('+g.n+' elever)',g.color)).join('');
+
+  const body=`
+    <div style="font-family:Arial,sans-serif;color:#333">
+      <div style="text-align:center;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #eee">
+        <h1 style="font-size:18pt;margin:0 0 4px">${esc(def.name)} — ${esc(area.name)}</h1>
+        <div style="font-size:11pt;color:#666">Helhetsbedömning · ÅK ${yr} · ${esc(c.name)}${c.year?' ('+esc(c.year)+')':''}</div>
+        <div style="font-size:9pt;color:#999;margin-top:4px">Genererad ${new Date().toLocaleDateString('sv-SE')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">
+        ${chartHTML}
+      </div>
+      <div style="font-size:9pt;color:#999;text-align:center;border-top:1px solid #eee;padding-top:8px">
+        Kunskapskollen · ${esc(c.name)} · ${esc(def.name)} · ${esc(area.name)}
+      </div>
+    </div>`;
+
+  openPreview(`${def.name} — ${area.name} — Statistik`, body, true);
+}
 
 (async function boot(){
   // ── Electron window focus recovery ─────────────────────────────────
