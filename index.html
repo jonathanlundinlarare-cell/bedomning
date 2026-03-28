@@ -778,6 +778,7 @@ tr.absence-warn td.td-name{border-left:3px solid var(--orange)!important}
 .stat-kpi.kpi-bad{background:var(--g-F-bg);border-color:var(--g-F-bd)}
 
 /* Grade distribution bar */
+.area-stats-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px solid var(--border-soft)}
 .dist-bar-wrap{margin-bottom:10px;padding:8px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border-soft)}
 .dist-bar-wrap:hover{border-color:var(--border)}
 .dist-bar-label{font-size:.76rem;color:var(--text);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
@@ -2050,10 +2051,7 @@ function renderGradeTab(cls,sk){
     if(cls.retakes[k]&&!((cls.omprovResults||{})[k]||[]).length)
       pendingOmprov.push({name:s.name,moment:areas[ai2].moments[mi2],grade:cls.grades[k]||''});
   }
-  const retakeSummary=pendingOmprov.length?`<div class="retake-bar">🔄 <strong>${pendingOmprov.length} väntar på omprov</strong>: ${pendingOmprov.slice(0,4).map(r=>`${esc(r.name)}: ${esc(r.moment)} (${gradeLabel(r.grade)})`).join(' · ')}${pendingOmprov.length>4?` +${pendingOmprov.length-4} till`:''}</div>`:'';
-
-  const absWarnStudents=cls.students.filter(s=>absenceWarn(cls,s.id,yr));
-  const absWarnBar=absWarnStudents.length?`<div class="absence-warn-bar">⚠ <strong>Frånvarovarning (≥${db.absenceLimit||15}h ogiltig):</strong> ${absWarnStudents.map(s=>esc(s.name)).join(', ')}</div>`:'';
+  const retakeSummary='';  const absWarnBar=absWarnStudents.length?`<div class="absence-warn-bar">⚠ <strong>Frånvarovarning (≥${db.absenceLimit||15}h ogiltig):</strong> ${absWarnStudents.map(s=>esc(s.name)).join(', ')}</div>`:'';
 
   return`
   <div class="card">
@@ -2065,9 +2063,9 @@ function renderGradeTab(cls,sk){
     </div>
     <div class="card-body">
       <div class="year-tabs no-print">${ytabs}</div>
-      ${renderStats(allG)}
-      ${retakeSummary}${absWarnBar}
+      ${absWarnBar}
       <div class="table-wrap"><table><thead><tr>${aHdr}</tr><tr>${mHdr}</tr></thead><tbody>${rows}</tbody></table></div>
+      ${buildAreaStats(cls,sk,yr,areas)}
       <p class="text-xs text-muted mt-2 no-print">Klicka på ett elevnamn för elevvy · 🔴 F/E– · <span style="color:var(--accent)">●</span> Not · <span style="color:var(--orange)">●</span> Omprov</p>
     </div>
   </div>`;
@@ -2119,8 +2117,9 @@ function openPicker(sid,sk,yr,ai,mi,sname,aname,mname){
   renderGradeButtons(cur);
   renderHistoryList(c.history[key]||[]);
   renderPickerMiniStats(c,sid,sk,yr,parseInt(ai),parseInt(mi));
-  // Show omprov section if grade is F/Komp/E-
-  renderPickerOmprovSection(c,sid,sk,yr,parseInt(ai),parseInt(mi),cur);
+  // Show omprov section if grade is F/Komp/E- — but NOT for helhetsbedömning
+  const isHelhetsPicker=mname.toLowerCase().includes('helhet');
+  if(!isHelhetsPicker)renderPickerOmprovSection(c,sid,sk,yr,parseInt(ai),parseInt(mi),cur);
   // Show criteria fulfillment section for Helhetsbedömning
   renderPickerCriteriaSection(c,sid,sk,yr,parseInt(ai),parseInt(mi),key);
   document.getElementById('picker-overlay').classList.add('open');
@@ -2312,7 +2311,8 @@ function openStudentView(sid){
       for(let ai=0;ai<areas.length;ai++) for(let mi=0;mi<areas[ai].moments.length;mi++){
         const key=gKey(sid,sk,yr,ai,mi);
         const g=c.grades[key]||'';if(!g)continue;
-        const retake=c.retakes[key]||false;if(retake)retakeCount++;
+        const isHelhetsMoment=areas[ai].moments[mi].toLowerCase().includes('helhet');
+        const retake=!isHelhetsMoment&&(c.retakes[key]||false);if(retake)retakeCount++;
         const note=c.notes[key]||'';
         const hist=c.history[key]||[];
         const gi=gradeInfo(g);
@@ -4251,6 +4251,16 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v131',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed',    icon:'🔧', text:'Omprov-bannern ("X väntar på omprov") borttagen från ämnesvyn — var missvisande.' },
+      { type:'improved', icon:'📊', text:'Betygsöversikt per arbetsområde visas nu under tabellen med mini-pills och andel ≥E.' },
+      { type:'fixed',    icon:'🔧', text:'Helhetsbedömning visar inte längre omprov-sektion i picker.' },
+    ]
+  },
+  {
     version: 'v130',
     label: 'Senaste',
     date: '2026-03',
@@ -4516,7 +4526,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v130';
+const LATEST_VERSION = 'v131';
 
 function openReleaseNotes(){
   openSettings();
@@ -7765,6 +7775,43 @@ function renderStatAreas(){
   if(!sections)return'<p class="text-sm text-muted" style="padding:20px">Inga helhetsbedömningar registrerade för detta urval.</p>';
 
   return '<div>'+ctrl+sections+'</div>';
+}
+
+
+function buildAreaStats(cls, sk, yr, areas){
+  if(!areas.length)return'';
+  const active=cls.students.filter(s=>!s.archived);
+  let html='<div class="area-stats-row no-print">';
+  for(let ai=0;ai<areas.length;ai++){
+    const area=areas[ai];
+    // Samla betyg per moment
+    const momentStats=area.moments.map((mname,mi)=>{
+      const grades=active.map(s=>{
+        const key=gKey(s.id,sk,yr,ai,mi);
+        return effectiveGrade(cls,key,cls.grades[key]||'');
+      }).filter(Boolean);
+      return{mname,grades};
+    }).filter(m=>m.grades.length);
+    if(!momentStats.length)continue;
+    // Alla betyg för AO (för total)
+    const allAoGrades=momentStats.flatMap(m=>m.grades);
+    const cnt={};allAoGrades.forEach(g=>cnt[g]=(cnt[g]||0)+1);
+    const total=allAoGrades.length;
+    const GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
+    const order=['A','B','C','D','E','E-','F','K'];
+    const pctGood=total?Math.round(order.filter(k=>['A','B','C','D','E'].includes(k)).reduce((s,k)=>s+(cnt[k]||0),0)/total*100):0;
+    // Mini-pills
+    const pills=order.filter(k=>cnt[k]).map(k=>
+      `<span style="display:inline-flex;align-items:center;gap:2px;font-size:.65rem;padding:1px 5px;border-radius:8px;background:${GCOL[k]}22;color:${GCOL[k]};border:1px solid ${GCOL[k]}44;font-weight:700">${gradeLabel(k)}<span style="font-weight:400;opacity:.8">${cnt[k]}</span></span>`
+    ).join('');
+    html+=`<div style="flex:1;min-width:120px;padding:8px 10px;background:var(--surface);border:1px solid var(--border-soft);border-radius:8px">
+      <div style="font-size:.72rem;font-weight:700;color:var(--text);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(area.name)}</div>
+      <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px">${pills}</div>
+      <div style="font-size:.67rem;color:var(--text-muted)">${total} betyg · <span style="color:${pctGood>=80?'#16a34a':pctGood<50?'#dc2626':'var(--text-muted)'}"><strong>${pctGood}%</strong> ≥E</span></div>
+    </div>`;
+  }
+  html+='</div>';
+  return html;
 }
 
 (async function boot(){
