@@ -4315,6 +4315,14 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v137',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔧', text:'Tvingad uppdatering — samma innehåll som v136 men med nytt versionsnummer så appen hämtar filen.' },
+    ]
+  },
+  {
     version: 'v136',
     label: 'Senaste',
     date: '2026-03',
@@ -4635,7 +4643,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v136';
+const LATEST_VERSION = 'v137';
 
 function openReleaseNotes(){
   openSettings();
