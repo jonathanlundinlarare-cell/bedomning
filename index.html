@@ -2807,6 +2807,7 @@ function renderStatClass(){
   const c=currentClass();
   if(!c||!c.students.length)return'<p class="text-sm text-muted">Välj en klass med elever.</p>';
   const subs=classSubjects(c);
+  const _infoHtml=renderStatInfo('class');
 
   // Compute KPIs from BOTH final grades AND helhetsbedömningar
   const allF=[];let riskSet=new Set();
@@ -2836,7 +2837,7 @@ function renderStatClass(){
   for(const sk of subs)for(const yr of YEARS)allHG.push(...getHelhetsGrades(c,sk,yr).map(h=>h.grade));
   const pctGoodH=allHG.length?Math.round(allHG.filter(g=>['A','B','C','D','E'].includes(g)).length/allHG.length*100):null;
 
-  let html=`<div class="stat-kpi-row">
+  let html=_infoHtml+`<div class="stat-kpi-row">
     <div class="stat-kpi"><div class="stat-kpi-val">${c.students.length}</div><div class="stat-kpi-lbl">Elever</div></div>
     <div class="stat-kpi"><div class="stat-kpi-val">${subs.length}</div><div class="stat-kpi-lbl">Ämnen</div></div>
     <div class="stat-kpi ${pctGood>=80?'kpi-good':pctGood<50?'kpi-bad':''}"><div class="stat-kpi-val">${allF.length?pctGood+'%':'–'}</div><div class="stat-kpi-lbl">Terminsbetyg ≥E</div></div>
@@ -2896,7 +2897,7 @@ function renderStatCompare(){
   const allSubs=[...new Set(db.classes.flatMap(cls=>classSubjects(cls)))];
   const curSk=document.getElementById('cmp2-subject')?.value||allSubs[0]||'samhall';
   const curYr=parseInt(document.getElementById('cmp2-year')?.value||'7');
-  const curMode=document.getElementById('cmp2-mode')?.value||'final-VT';
+  const curMode=document.getElementById('cmp2-mode')?.value||'moments';
   const GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
   const order=['A','B','C','D','E','E-','F','K'];
   const subOptions=allSubs.map(sk=>{
@@ -2933,7 +2934,7 @@ function renderStatCompare(){
       <div class="dist-bar-mini">${order.filter(k=>r.cnt[k]).map(k=>`<span class="dist-bar-mini-item"><span class="dist-bar-mini-dot" style="background:${GCOL[k]}"></span>${gradeLabel(k)} ${r.cnt[k]}</span>`).join('')}</div>
     </div>`).join('');
   const legend=order.map(k=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;margin-right:10px"><span style="width:10px;height:10px;border-radius:2px;background:${GCOL[k]};display:inline-block"></span>${gradeLabel(k)}</span>`).join('');
-  return`<div>
+  return renderStatInfo('compare')+`<div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:flex-end">
       <div class="fg" style="margin:0;flex:1"><label>Ämne</label><select id="cmp2-subject" onchange="renderStatTab()">${subOptions}</select></div>
       <div class="fg" style="margin:0"><label>Årkurs</label><select id="cmp2-year" onchange="renderStatTab()">${[6,7,8,9].map(y=>`<option value="${y}" ${y===curYr?'selected':''}>${y===6?'ÅK 6':'Årskurs '+y}</option>`).join('')}</select></div>
@@ -2946,6 +2947,7 @@ function renderStatCompare(){
 
 
 function renderStatRisk(){
+  const _riskInfo=renderStatInfo('risk');
   const c=currentClass();if(!c||!c.students.length)return'<p class="text-sm text-muted">Välj en klass.</p>';
   const subs=classSubjects(c);const limit=db.absenceLimit||15;let rows='';
   for(const s of c.students){
@@ -2985,7 +2987,7 @@ function renderStatRisk(){
     </tr>`;
   }
   if(!rows)return`<div style="text-align:center;padding:30px;color:var(--text-muted)"><div style="font-size:2rem;margin-bottom:8px">✅</div><p>Inga elever i riskzon!</p></div>`;
-  return`<div>
+  return _riskInfo+`<div>
     <p class="text-xs text-muted mb-2">Elever med F eller E– i terminsbetyg eller helhetsbedömning (⚡ = tidig varning, inget terminsbetyg satt). Hög frånvaro ≥${limit}h.</p>
     <div class="table-wrap"><table class="risk-table">
       <thead><tr><th>Elev</th><th>Riskmarkeringar</th><th>Frånvaro</th><th></th></tr></thead>
@@ -2996,7 +2998,7 @@ function renderStatRisk(){
 
 function renderStatPrint(){
   const c=currentClass();const cn=c?`${c.name}${c.year?' '+c.year:''}`:'-';
-  return`<div>
+  return renderStatInfo('print')+`<div>
     <p class="text-sm text-muted mb-2">Välj vad du vill skriva ut för <strong>${esc(cn)}</strong>.</p>
 
     <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);margin:10px 0 6px">Betygsrapporter</div>
@@ -4294,6 +4296,15 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v135',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed',    icon:'🔧', text:'Jämför klasser visar nu momentbetyg som standard — terminsbetyg kräver att terminsbetyg är registrerade.' },
+      { type:'added',    icon:'💡', text:'Förklaringsrutor per statistikflik — varje vy beskriver vad den visar och hur den används.' },
+    ]
+  },
+  {
     version: 'v134',
     label: 'Senaste',
     date: '2026-03',
@@ -4594,7 +4605,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v134';
+const LATEST_VERSION = 'v135';
 
 function openReleaseNotes(){
   openSettings();
@@ -5287,8 +5298,7 @@ function renderStatTodo(){
     </div>`;
   }).join('');
 
-  return`<div>
-    <div class="todo-filter-row">
+  return renderStatInfo('todo')+`<div>v class="todo-filter-row">
       <select id="todo-filter-type" onchange="renderStatTab()">
         <option value="">Alla typer</option>
         <option value="omprov"  ${filterType==='omprov'?'selected':''}>Omprov</option>
@@ -7749,7 +7759,7 @@ function renderStatDeep(){
       +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+absCards+'</div></div>';
   }
 
-  return '<div>'+ctrl+kpiRow+chartHtml+absHtml+'</div>';
+  return renderStatInfo('deep')+'<div>'+ctrl+kpiRow+chartHtml+absHtml+'</div>';
 }
 
 
@@ -7769,7 +7779,7 @@ function renderStatAreas(){
     areas.forEach(function(a){if(!allAreaNames.includes(a.name))allAreaNames.push(a.name);});
   });
 
-  if(!allAreaNames.length)return'<p class="text-sm text-muted" style="padding:20px">Inga arbetsområden för valt ämne och årskurs.</p>';
+  if(!allAreaNames.length)return'<div style="padding:16px;background:var(--surface2);border-radius:8px;font-size:.82rem;color:var(--text-muted)">Inga arbetsområden hittades för valt ämne och årskurs. Se till att klasserna har samma ämne och att arbetsområden är skapade.</div>';
 
   // Bygg tabell: rader=klasser, kolumner=AO, cell=snittbetyg + mini-bar
   var subOpts=allSubs.map(function(sk){
@@ -7840,9 +7850,9 @@ function renderStatAreas(){
       +rows+'</div>';
   });
 
-  if(!sections)return'<p class="text-sm text-muted" style="padding:20px">Inga helhetsbedömningar registrerade för detta urval.</p>';
+  if(!sections)return'<div style="padding:16px;background:var(--surface2);border-radius:8px;font-size:.82rem;color:var(--text-muted)">Inga helhetsbedömningar registrerade ännu för detta urval. Sätt helhetsbedömningar på elever i de aktuella klasserna för att se jämförelsen.</div>';
 
-  return '<div>'+ctrl+sections+'</div>';
+  return renderStatInfo('areas')+'<div>'+ctrl+sections+'</div>';
 }
 
 
@@ -7896,6 +7906,33 @@ function buildAreaStats(cls, sk, yr, areas){
   }
   html+='</div>';
   return html;
+}
+
+
+/* ================================================================
+   STAT INFO — förklaringsrutor per flik
+================================================================ */
+const STAT_INFO = {
+  'class':   {icon:'🎓', title:'Klassbild', text:'Sammanfattning av hela klassens betygsläge. Visar KPI-kort (elever, omprov, riskzon), betygsdistribution per ämne och år, samt andel ≥E. Växla mellan terminsbetyg och helhetsbedömningar med knapparna.'},
+  'risk':    {icon:'⚠',  title:'Riskzon',   text:'Elever som riskerar att inte nå E. Visar terminsbetyg under E, helhetsbedömningar F/E–, och elever med hög ogiltig frånvaro. Används som underlag för åtgärder.'},
+  'todo':    {icon:'📋', title:'Att göra',  text:'Konkreta åtgärder: elever som väntar på omprov, har F eller behöver komplettering. E– visas ej här men räknas i riskzon. Kryssa av hanterade ärenden.'},
+  'deep':    {icon:'🔬', title:'Fördjupning', text:'Jämför betygsfördelning och frånvaro uppdelat på kön (T/K) eller SvA. Välj ämne, årskurs och betygskälla. Snittbetyget beräknas som A=6, B=5 … F=0.'},
+  'compare': {icon:'⚖',  title:'Jämför klasser', text:'Ställ klasser mot varandra för ett visst ämne och årskurs. Välj "Momentbetyg" för att se alla registrerade betyg, eller terminsbetyg HT/VT om sådana finns.'},
+  'areas':   {icon:'📐', title:'Jämför AO', text:'Jämför helhetsbedömningar per arbetsområde mellan klasser. Kräver att klasserna har arbetsområden med samma namn och att helhetsbedömningar är satta.'},
+  'coverage':{icon:'📚', title:'Kursplan',  text:'Visar hur väl undervisningen täcker det centrala innehållet (LGR22). Koppla arbetsområden till kursplanens delar under respektive ämne.'},
+  'print':   {icon:'🖨', title:'Utskrift',  text:'Generera rapporter som kan skrivas ut eller sparas som PDF. Välj rapport, granska förhandsvisningen och klicka Skriv ut.'},
+};
+
+function renderStatInfo(tab){
+  const info=STAT_INFO[tab];
+  if(!info)return'';
+  return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;'
+    +'background:var(--accent-lt);border-radius:8px;margin-bottom:14px;border:1px solid var(--accent)22">'
+    +'<span style="font-size:1rem;flex-shrink:0">'+info.icon+'</span>'
+    +'<div>'
+    +'<div style="font-size:.78rem;font-weight:700;color:var(--accent);margin-bottom:2px">'+info.title+'</div>'
+    +'<div style="font-size:.75rem;color:var(--text-muted);line-height:1.5">'+info.text+'</div>'
+    +'</div></div>';
 }
 
 (async function boot(){
