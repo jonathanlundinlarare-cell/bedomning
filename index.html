@@ -988,6 +988,21 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
 .sb-search-result-grades{font-size:.68rem;color:var(--text-muted)}
 .sb-search-hl{background:var(--accent-lt);color:var(--accent);border-radius:2px;padding:0 1px}
 .sb-search-empty{padding:10px;font-size:.76rem;color:var(--text-muted);text-align:center}
+
+/* Statistik nav — grupperad */
+.stat-nav{display:flex;flex-direction:column;gap:0;margin-bottom:18px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.stat-nav-section{display:flex;align-items:center;border-bottom:1px solid var(--border)}
+.stat-nav-section:last-child{border-bottom:none}
+.stat-nav-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-muted);padding:0 10px;min-width:70px;background:var(--surface2);
+  display:flex;align-items:center;border-right:1px solid var(--border);align-self:stretch;flex-shrink:0}
+.stat-nav-btns{display:flex;flex-wrap:wrap;gap:0;flex:1}
+.stat-nav-btn{padding:8px 12px;font-size:.76rem;font-weight:500;color:var(--text-muted);
+  background:none;border:none;cursor:pointer;white-space:nowrap;transition:all .15s;
+  border-right:1px solid var(--border-soft)}
+.stat-nav-btn:last-child{border-right:none}
+.stat-nav-btn:hover{background:var(--surface2);color:var(--text)}
+.stat-nav-btn.active{background:var(--accent-lt);color:var(--accent);font-weight:700}
 </style>
 </head>
 <body>
@@ -1298,14 +1313,31 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
 
     <!-- TABS -->
     <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px">
-      <button class="stab active" id="stab-stat-class"    onclick="showStatTab('class')">🎓 Klassbild</button>
-      <button class="stab"        id="stab-stat-compare"  onclick="showStatTab('compare')">⚖ Jämför klasser</button>
-      <button class="stab"        id="stab-stat-risk"     onclick="showStatTab('risk')">⚠ Riskzon</button>
-      <button class="stab"        id="stab-stat-todo"     onclick="showStatTab('todo')">📋 Att göra</button>
-      <button class="stab"        id="stab-stat-deep"     onclick="showStatTab('deep')">🔬 Fördjupning</button>
-      <button class="stab"        id="stab-stat-areas"    onclick="showStatTab('areas')">📐 Jämför AO</button>
-      <button class="stab"        id="stab-stat-coverage" onclick="showStatTab('coverage')">📚 Kursplan</button>
-      <button class="stab"        id="stab-stat-print"    onclick="showStatTab('print')">🖨 Utskrift</button>
+      <div class="stat-nav">
+        <div class="stat-nav-section">
+          <span class="stat-nav-label">Klass</span>
+          <div class="stat-nav-btns">
+            <button class="stat-nav-btn active" id="stab-stat-class"    onclick="showStatTab('class')">🎓 Klassbild</button>
+            <button class="stat-nav-btn"        id="stab-stat-risk"     onclick="showStatTab('risk')">⚠ Riskzon</button>
+            <button class="stat-nav-btn"        id="stab-stat-todo"     onclick="showStatTab('todo')">📋 Att göra</button>
+          </div>
+        </div>
+        <div class="stat-nav-section">
+          <span class="stat-nav-label">Analys</span>
+          <div class="stat-nav-btns">
+            <button class="stat-nav-btn" id="stab-stat-deep"    onclick="showStatTab('deep')">🔬 Fördjupning</button>
+            <button class="stat-nav-btn" id="stab-stat-compare" onclick="showStatTab('compare')">⚖ Jämför klasser</button>
+            <button class="stat-nav-btn" id="stab-stat-areas"   onclick="showStatTab('areas')">📐 Jämför AO</button>
+          </div>
+        </div>
+        <div class="stat-nav-section">
+          <span class="stat-nav-label">Övrigt</span>
+          <div class="stat-nav-btns">
+            <button class="stat-nav-btn" id="stab-stat-coverage" onclick="showStatTab('coverage')">📚 Kursplan</button>
+            <button class="stat-nav-btn" id="stab-stat-print"    onclick="showStatTab('print')">🖨 Utskrift</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="stat-tab-body"></div>
@@ -2696,7 +2728,7 @@ let _statTab='class';
 
 function showStatTab(tab){
   _statTab=tab;
-  document.querySelectorAll('[id^="stab-stat-"]').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.stab,.stat-nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('stab-stat-'+tab)?.classList.add('active');
   renderStatTab();
 }
@@ -4262,6 +4294,14 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v134',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'improved', icon:'📊', text:'Statistik-navigeringen omstrukturerad — tre sektioner (Klass, Analys, Övrigt) i en kompakt navbar. Alla flikar synliga utan scroll.' },
+    ]
+  },
+  {
     version: 'v133',
     label: 'Senaste',
     date: '2026-03',
@@ -4554,7 +4594,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v133';
+const LATEST_VERSION = 'v134';
 
 function openReleaseNotes(){
   openSettings();
