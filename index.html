@@ -778,11 +778,16 @@ tr.absence-warn td.td-name{border-left:3px solid var(--orange)!important}
 .stat-kpi.kpi-bad{background:var(--g-F-bg);border-color:var(--g-F-bd)}
 
 /* Grade distribution bar */
-.dist-bar-wrap{margin-bottom:8px}
-.dist-bar-label{font-size:.76rem;color:var(--text-muted);margin-bottom:3px;display:flex;justify-content:space-between}
-.dist-bar{height:22px;border-radius:4px;overflow:hidden;display:flex;background:var(--surface3)}
-.dist-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:#fff;min-width:0;overflow:hidden;transition:width .3s}
-.dist-seg-label{white-space:nowrap;overflow:hidden;padding:0 3px}
+.dist-bar-wrap{margin-bottom:10px;padding:8px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border-soft)}
+.dist-bar-wrap:hover{border-color:var(--border)}
+.dist-bar-label{font-size:.76rem;color:var(--text);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.dist-bar-label strong{color:var(--accent)}
+.dist-bar{height:26px;border-radius:6px;overflow:hidden;display:flex;background:var(--surface2);gap:1px}
+.dist-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:#fff;min-width:0;overflow:hidden;transition:width .4s ease}
+.dist-seg-label{white-space:nowrap;overflow:hidden;padding:0 4px}
+.dist-bar-mini{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.dist-bar-mini-item{font-size:.68rem;display:flex;align-items:center;gap:3px;color:var(--text-muted)}
+.dist-bar-mini-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
 
 /* Risk table */
 .risk-table{width:100%;border-collapse:collapse;font-size:.79rem}
@@ -954,6 +959,34 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
   width:210mm;min-height:100px}
 .preview-page.landscape{width:297mm;padding:10mm 12mm}
 @media(max-width:960px){.preview-page,.preview-page.landscape{width:100%}}
+
+.meta-badge{font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:10px;
+  cursor:pointer;user-select:none;transition:all .15s;flex-shrink:0}
+.meta-badge.gf{background:#fce7f3;color:#9d174d;border:1px solid #f9a8d4}
+.meta-badge.gm{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
+.meta-badge.gn{background:var(--surface2);color:var(--text-light);border:1px solid var(--border)}
+.meta-badge.sva-on{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.meta-badge.sva-off{background:var(--surface2);color:var(--text-light);border:1px solid var(--border)}
+
+/* Elevsök */
+.sb-search-wrap{padding:6px 8px 2px;position:relative}
+.sb-search-inp{width:100%;padding:5px 28px 5px 8px;border:1px solid var(--border);
+  border-radius:6px;font-family:inherit;font-size:.78rem;background:var(--surface2);
+  color:var(--text);outline:none;box-sizing:border-box}
+.sb-search-inp:focus{border-color:var(--accent);background:var(--surface)}
+.sb-search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem;
+  padding:2px;line-height:1;display:none}
+.sb-search-results{max-height:280px;overflow-y:auto}
+.sb-search-result{display:flex;align-items:center;gap:7px;padding:6px 10px;
+  cursor:pointer;font-size:.78rem;border-bottom:1px solid var(--border-soft)}
+.sb-search-result:hover{background:var(--surface2)}
+.sb-search-result-name{font-weight:600;flex:1;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.sb-search-result-cls{font-size:.71rem;color:var(--text-muted);white-space:nowrap}
+.sb-search-result-grades{font-size:.68rem;color:var(--text-muted)}
+.sb-search-hl{background:var(--accent-lt);color:var(--accent);border-radius:2px;padding:0 1px}
+.sb-search-empty{padding:10px;font-size:.76rem;color:var(--text-muted);text-align:center}
 </style>
 </head>
 <body>
@@ -1003,6 +1036,12 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
 <!-- LAYOUT -->
 <div class="layout">
   <aside class="sidebar">
+    <div class="sb-search-wrap">
+      <input class="sb-search-inp" id="sb-search-inp" type="text" placeholder="🔍 Sök elev…"
+        oninput="renderStudentSearch(this.value)" autocomplete="off">
+      <button class="sb-search-clear" id="sb-search-clear" onclick="clearStudentSearch()">✕</button>
+    </div>
+    <div id="sb-search-results" class="sb-search-results" style="display:none"></div>
     <div class="sb-section">Klasser</div>
     <div id="class-list"></div>
     <div style="padding:0 7px 5px">
@@ -1262,6 +1301,8 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
       <button class="stab"        id="stab-stat-compare"  onclick="showStatTab('compare')">⚖ Jämför klasser</button>
       <button class="stab"        id="stab-stat-risk"     onclick="showStatTab('risk')">⚠ Riskzon</button>
       <button class="stab"        id="stab-stat-todo"     onclick="showStatTab('todo')">📋 Att göra</button>
+      <button class="stab"        id="stab-stat-deep"     onclick="showStatTab('deep')">🔬 Fördjupning</button>
+      <button class="stab"        id="stab-stat-areas"    onclick="showStatTab('areas')">📐 Jämför AO</button>
       <button class="stab"        id="stab-stat-coverage" onclick="showStatTab('coverage')">📚 Kursplan</button>
       <button class="stab"        id="stab-stat-print"    onclick="showStatTab('print')">🖨 Utskrift</button>
     </div>
@@ -1682,6 +1723,102 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){
 /* ================================================================
    SIDEBAR
 ================================================================ */
+
+/* ================================================================
+   ELEVSÖK I SIDOPANEL
+================================================================ */
+function renderStudentSearch(query){
+  const inp=document.getElementById('sb-search-inp');
+  const clearBtn=document.getElementById('sb-search-clear');
+  const resultsEl=document.getElementById('sb-search-results');
+  if(!resultsEl)return;
+
+  const q=(query||'').trim().toLowerCase();
+
+  if(!q){
+    resultsEl.style.display='none';
+    resultsEl.innerHTML='';
+    if(clearBtn)clearBtn.style.display='none';
+    return;
+  }
+  if(clearBtn)clearBtn.style.display='block';
+
+  // Sök i alla klasser
+  const hits=[];
+  for(const cls of db.classes){
+    if(cls.archived)continue;
+    for(const s of cls.students){
+      if(s.archived)continue;
+      if(s.name.toLowerCase().includes(q)){
+        hits.push({s,cls});
+        if(hits.length>=20)break;
+      }
+    }
+    if(hits.length>=20)break;
+  }
+
+  if(!hits.length){
+    resultsEl.innerHTML='<div class="sb-search-empty">Inga elever hittades</div>';
+    resultsEl.style.display='block';
+    return;
+  }
+
+  function highlight(text,q){
+    const i=text.toLowerCase().indexOf(q);
+    if(i<0)return esc(text);
+    return esc(text.slice(0,i))+'<span class="sb-search-hl">'+esc(text.slice(i,i+q.length))+'</span>'+esc(text.slice(i+q.length));
+  }
+
+  resultsEl.innerHTML=hits.map(({s,cls})=>{
+    // Hämta senaste betyg som snabbinfo
+    const subs=classSubjects(cls).slice(0,3);
+    const riskCount=Object.keys(cls.retakes||{}).filter(k=>k.startsWith(s.id+'|')&&cls.retakes[k]).length;
+    const genderBadge=s.gender==='f'?'<span style="font-size:.62rem;color:#9d174d">T</span>':s.gender==='m'?'<span style="font-size:.62rem;color:#1e40af">K</span>':'';
+    const svaBadge=s.sva?'<span style="font-size:.62rem;color:#92400e">SvA</span>':'';
+    const retakeBadge=riskCount?`<span style="font-size:.62rem;color:#c2410c">🔄${riskCount}</span>`:'';
+    return`<div class="sb-search-result" onclick="searchSelectStudent('${s.id}','${cls.id}')">
+      <div style="width:26px;height:26px;border-radius:50%;background:var(--accent-lt);
+        display:flex;align-items:center;justify-content:center;font-size:.7rem;
+        font-weight:700;color:var(--accent);flex-shrink:0">${esc(s.name.charAt(0).toUpperCase())}</div>
+      <div style="flex:1;min-width:0">
+        <div class="sb-search-result-name">${highlight(s.name,q)} ${genderBadge}${svaBadge}${retakeBadge}</div>
+        <div class="sb-search-result-cls">${esc(cls.name)}${cls.year?' · '+esc(cls.year):''}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  resultsEl.style.display='block';
+}
+
+function clearStudentSearch(){
+  const inp=document.getElementById('sb-search-inp');
+  const clearBtn=document.getElementById('sb-search-clear');
+  const resultsEl=document.getElementById('sb-search-results');
+  if(inp)inp.value='';
+  if(clearBtn)clearBtn.style.display='none';
+  if(resultsEl){resultsEl.style.display='none';resultsEl.innerHTML='';}
+}
+
+function searchSelectStudent(sid,clsId){
+  // Byt till rätt klass och öppna elevvy
+  clearStudentSearch();
+  if(clsId!==currentClassId){
+    selectClass(clsId);
+    // Vänta på att klassen laddas innan elevvy öppnas
+    setTimeout(()=>openStudentView(sid),150);
+  } else {
+    openStudentView(sid);
+  }
+}
+
+// Stäng sökresultat vid klick utanför
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.sb-search-wrap')&&!e.target.closest('.sb-search-results')){
+    const r=document.getElementById('sb-search-results');
+    if(r)r.style.display='none';
+  }
+});
+
 function renderSidebar(){
   const el=document.getElementById('class-list');
   if(!db.classes.length){el.innerHTML=`<div style="padding:7px 13px;font-size:.78rem;color:var(--text-light)">Inga klasser ännu</div>`;return;}
@@ -2560,6 +2697,8 @@ function renderStatTab(){
   else if(_statTab==='compare')el.innerHTML=renderStatCompare();
   else if(_statTab==='risk')   el.innerHTML=renderStatRisk();
   else if(_statTab==='todo')     el.innerHTML=renderStatTodo();
+  else if(_statTab==='deep')    el.innerHTML=renderStatDeep();
+  else if(_statTab==='areas')   el.innerHTML=renderStatAreas();
   else if(_statTab==='coverage') el.innerHTML=renderStatCoverage();
   else if(_statTab==='print')    el.innerHTML=renderStatPrint();
 }
@@ -2582,17 +2721,25 @@ function getAllMomentGrades(cls,sk,yr){
 }
 
 function distBar(grades,label){
-  if(!grades.length)return`<div class="dist-bar-wrap"><div class="dist-bar-label"><span>${label}</span><span style="color:var(--text-light)">Inga betyg</span></div></div>`;
-  const GCOL={A:'#2e7d32',B:'#558b2f',C:'#9e9d24',D:'#f57f17',E:'#ef6c00','E-':'#d84315',F:'#c62828',K:'#6a1b9a'};
+  const GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
   const order=['A','B','C','D','E','E-','F','K'];
+  if(!grades.length)return`<div class="dist-bar-wrap"><div class="dist-bar-label"><span style="font-weight:600;font-size:.78rem">${label}</span><span style="color:var(--text-muted);font-size:.73rem">Inga betyg</span></div></div>`;
   const total=grades.length;
   const cnt={};grades.forEach(g=>cnt[g]=(cnt[g]||0)+1);
   const segs=order.filter(k=>cnt[k]).map(k=>{
     const pct=Math.round(cnt[k]/total*100);
-    return`<div class="dist-seg" style="width:${pct}%;background:${GCOL[k]||'#888'}" title="${gradeLabel(k)}: ${cnt[k]} (${pct}%)"><span class="dist-seg-label">${pct>6?gradeLabel(k):''}</span></div>`;
+    return`<div class="dist-seg" style="width:${pct}%;background:${GCOL[k]||'#888'}" title="${gradeLabel(k)}: ${cnt[k]} st (${pct}%)"><span class="dist-seg-label">${pct>7?gradeLabel(k):''}</span></div>`;
   }).join('');
   const pctGood=Math.round(order.filter(k=>['A','B','C','D','E'].includes(k)).reduce((s,k)=>s+(cnt[k]||0),0)/total*100);
-  return`<div class="dist-bar-wrap"><div class="dist-bar-label"><span>${label}</span><span>${total} betyg &nbsp;·&nbsp; <strong>${pctGood}%</strong> når E eller högre</span></div><div class="dist-bar">${segs}</div></div>`;
+  const pills=order.filter(k=>cnt[k]).map(k=>`<span class="dist-bar-mini-item"><span class="dist-bar-mini-dot" style="background:${GCOL[k]}"></span>${gradeLabel(k)} ${cnt[k]}</span>`).join('');
+  return`<div class="dist-bar-wrap">
+    <div class="dist-bar-label">
+      <span style="font-weight:600;font-size:.78rem">${label}</span>
+      <span style="font-size:.73rem;color:var(--text-muted)">${total} betyg · <strong style="color:${pctGood>=80?'#16a34a':pctGood<50?'#dc2626':'var(--text)'}">${pctGood}%</strong> ≥E</span>
+    </div>
+    <div class="dist-bar">${segs}</div>
+    <div class="dist-bar-mini">${pills}</div>
+  </div>`;
 }
 
 // Returns helhetsbedömning grades for a class/subject/year
@@ -2704,43 +2851,56 @@ function renderStatClass(){
 function renderStatCompare(){
   if(db.classes.length<2)return`<div style="padding:20px;text-align:center;color:var(--text-muted)"><p>Du behöver minst två klasser för att jämföra.</p></div>`;
   const allSubs=[...new Set(db.classes.flatMap(cls=>classSubjects(cls)))];
-  const subOptions=allSubs.map(sk=>{
-    const cls=db.classes.find(c=>classSubjects(c).includes(sk));
-    const def=cls?subjectDef(sk,cls):{key:sk,name:sk,icon:'📋'};
-    return`<option value="${sk}">${def.icon} ${def.name}</option>`;
-  }).join('');
   const curSk=document.getElementById('cmp2-subject')?.value||allSubs[0]||'samhall';
   const curYr=parseInt(document.getElementById('cmp2-year')?.value||'7');
   const curMode=document.getElementById('cmp2-mode')?.value||'final-VT';
-  const GCOL={A:'#2e7d32',B:'#558b2f',C:'#9e9d24',D:'#f57f17',E:'#ef6c00','E-':'#d84315',F:'#c62828',K:'#6a1b9a'};
+  const GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
   const order=['A','B','C','D','E','E-','F','K'];
-  let chartRows='';
+  const subOptions=allSubs.map(sk=>{
+    const cls=db.classes.find(c=>classSubjects(c).includes(sk));
+    const def=cls?subjectDef(sk,cls):{key:sk,name:sk,icon:'📋'};
+    return`<option value="${sk}" ${sk===curSk?'selected':''}>${def.icon} ${def.name}</option>`;
+  }).join('');
+  const rows=[];
   for(const cls of db.classes){
     if(!classSubjects(cls).includes(curSk))continue;
+    const active=cls.students.filter(s=>!s.archived);
     const grades=[];
     if(curMode==='moments'){getAllMomentGrades(cls,curSk,curYr).forEach(g=>grades.push(g.grade));}
-    else{const term=curMode.split('-')[1];for(const s of cls.students.filter(s=>!s.archived)){const g=((cls.finalGrades[s.id]||{})[curSk]||{})[curYr]?.[term]||'';if(g)grades.push(g);}}
+    else{const term=curMode.split('-')[1];for(const s of active){const g=((cls.finalGrades[s.id]||{})[curSk]||{})[curYr]?.[term]||'';if(g)grades.push(g);}}
     if(!grades.length)continue;
     const total=grades.length;const cnt={};grades.forEach(g=>cnt[g]=(cnt[g]||0)+1);
-    const segs=order.filter(k=>cnt[k]).map(k=>{
-      const pct=Math.round(cnt[k]/total*100);
-      return`<div class="dist-seg" style="width:${pct}%;background:${GCOL[k]||'#888'}" title="${gradeLabel(k)}: ${cnt[k]} (${pct}%)">${pct>5?gradeLabel(k):''}</div>`;
-    }).join('');
     const pctGood=Math.round(order.filter(k=>['A','B','C','D','E'].includes(k)).reduce((s,k)=>s+(cnt[k]||0),0)/total*100);
-    chartRows+=`<div class="cmp-cls-row"><div class="cmp-cls-name">${esc(cls.name)}${cls.year?' ('+cls.year+')':''} <span style="font-size:.71rem;color:var(--text-muted)">${total} betyg · ${pctGood}% ≥E</span></div><div class="dist-bar" style="height:26px;border-radius:5px">${segs}</div></div>`;
+    const rank={A:6,B:5,C:4,D:3,E:2,'E-':1,F:0};
+    let sum=0,n=0;grades.forEach(g=>{if(rank[g]!==undefined){sum+=rank[g];n++;}});
+    rows.push({cls,total,cnt,pctGood,avg:n?Math.round(sum/n*10)/10:null});
   }
-  const legend=order.map(k=>`<span style="display:inline-flex;align-items:center;gap:3px;font-size:.73rem;margin-right:8px"><span style="width:12px;height:12px;border-radius:2px;background:${GCOL[k]||'#888'};display:inline-block"></span>${gradeLabel(k)}</span>`).join('');
-  const subSel=subOptions.replace(`value="${curSk}"`,`value="${curSk}" selected`);
+  if(!rows.length)return`<div style="padding:20px;color:var(--text-muted)">Inga betyg för detta urval.</div>`;
+  const cls_rows=rows.map(r=>`
+    <div class="dist-bar-wrap" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-weight:700;font-size:.85rem">${esc(r.cls.name)}${r.cls.year?` <span style="font-weight:400;color:var(--text-muted);font-size:.76rem">(${r.cls.year})</span>`:''}</span>
+        <span style="display:flex;gap:12px;font-size:.75rem;color:var(--text-muted)">
+          <span>${r.total} betyg</span>
+          <span style="color:${r.pctGood>=80?'#16a34a':r.pctGood<50?'#dc2626':'var(--text)'}"><strong>${r.pctGood}%</strong> ≥E</span>
+          ${r.avg!==null?`<span>snitt <strong>${r.avg}</strong></span>`:''}
+        </span>
+      </div>
+      <div class="dist-bar">${order.filter(k=>r.cnt[k]).map(k=>{const pct=Math.round(r.cnt[k]/r.total*100);return`<div class="dist-seg" style="width:${pct}%;background:${GCOL[k]}" title="${gradeLabel(k)}: ${r.cnt[k]} (${pct}%)"><span class="dist-seg-label">${pct>7?gradeLabel(k):''}</span></div>`;}).join('')}</div>
+      <div class="dist-bar-mini">${order.filter(k=>r.cnt[k]).map(k=>`<span class="dist-bar-mini-item"><span class="dist-bar-mini-dot" style="background:${GCOL[k]}"></span>${gradeLabel(k)} ${r.cnt[k]}</span>`).join('')}</div>
+    </div>`).join('');
+  const legend=order.map(k=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;margin-right:10px"><span style="width:10px;height:10px;border-radius:2px;background:${GCOL[k]};display:inline-block"></span>${gradeLabel(k)}</span>`).join('');
   return`<div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:flex-end">
-      <div class="fg" style="margin:0;flex:1"><label>Ämne</label><select id="cmp2-subject" onchange="renderStatTab()">${subSel}</select></div>
-      <div class="fg" style="margin:0"><label>Årskurs</label><select id="cmp2-year" onchange="renderStatTab()">${[6,7,8,9].map(y=>`<option value="${y}" ${y===curYr?'selected':''}>${y===6?'ÅK 6 (mellst.)':'Årskurs '+y}</option>`).join('')}</select></div>
-      <div class="fg" style="margin:0"><label>Visa</label><select id="cmp2-mode" onchange="renderStatTab()"><option value="final-HT" ${curMode==='final-HT'?'selected':''}>Terminsbetyg HT</option><option value="final-VT" ${curMode==='final-VT'?'selected':''}>Terminsbetyg VT</option><option value="moments" ${curMode==='moments'?'selected':''}>Momentbetyg (alla)</option></select></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:flex-end">
+      <div class="fg" style="margin:0;flex:1"><label>Ämne</label><select id="cmp2-subject" onchange="renderStatTab()">${subOptions}</select></div>
+      <div class="fg" style="margin:0"><label>Årkurs</label><select id="cmp2-year" onchange="renderStatTab()">${[6,7,8,9].map(y=>`<option value="${y}" ${y===curYr?'selected':''}>${y===6?'ÅK 6':'Årskurs '+y}</option>`).join('')}</select></div>
+      <div class="fg" style="margin:0"><label>Visa</label><select id="cmp2-mode" onchange="renderStatTab()"><option value="final-HT" ${curMode==='final-HT'?'selected':''}>Terminsbetyg HT</option><option value="final-VT" ${curMode==='final-VT'?'selected':''}>Terminsbetyg VT</option><option value="moments" ${curMode==='moments'?'selected':''}>Momentbetyg</option></select></div>
     </div>
-    ${chartRows||'<p class="text-sm text-muted">Inga betyg att visa för detta urval.</p>'}
-    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border-soft)">${legend}</div>
+    ${cls_rows}
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-soft)">${legend}</div>
   </div>`;
 }
+
 
 function renderStatRisk(){
   const c=currentClass();if(!c||!c.students.length)return'<p class="text-sm text-muted">Välj en klass.</p>';
@@ -3189,11 +3349,15 @@ function renderSetup(cls){
   const archivedStudents=cls.students.filter(s=>s.archived);
   for(let i=0;i<activeStudents.length;i++){
     const s=activeStudents[i];
+    const gl=s.gender==='f'?'T':s.gender==='m'?'K':'–';
+    const gc=s.gender==='f'?'gf':s.gender==='m'?'gm':'gn';
     studHtml+=`<div class="stud-row" id="srow_${s.id}">
       <span class="stud-num">${i+1}.</span>
       <input type="text" value="${esc(s.name)}" onchange="updateStudent('${s.id}',this.value)">
-      <button class="btn btn-ghost btn-xs" title="Flytta till annan klass" onclick="openMoveStudentModal('${s.id}')">↔</button>
-      <button class="btn btn-ghost btn-xs" title="Arkivera elev" onclick="toggleArchiveStudent('${s.id}')">📦</button>
+      <span class="meta-badge ${gc}" title="Kön (T=tjej K=kille –=ej angivet)" onclick="cycleGender('${s.id}')">${gl}</span>
+      <span class="meta-badge ${s.sva?'sva-on':'sva-off'}" title="SvA" onclick="toggleSva('${s.id}')">${s.sva?'SvA':'sva'}</span>
+      <button class="btn btn-ghost btn-xs" title="Flytta" onclick="openMoveStudentModal('${s.id}')">↔</button>
+      <button class="btn btn-ghost btn-xs" title="Arkivera" onclick="toggleArchiveStudent('${s.id}')">📦</button>
       <button class="btn btn-danger btn-xs" onclick="removeStudent('${s.id}')">✕</button>
     </div>`;
   }
@@ -3998,11 +4162,15 @@ function _buildSetupWithCurriculum(cls){
   const archivedStudents=cls.students.filter(s=>s.archived);
   for(let i=0;i<activeStudents.length;i++){
     const s=activeStudents[i];
+    const gl=s.gender==='f'?'T':s.gender==='m'?'K':'–';
+    const gc=s.gender==='f'?'gf':s.gender==='m'?'gm':'gn';
     studHtml+=`<div class="stud-row" id="srow_${s.id}">
       <span class="stud-num">${i+1}.</span>
       <input type="text" value="${esc(s.name)}" onchange="updateStudent('${s.id}',this.value)">
-      <button class="btn btn-ghost btn-xs" title="Flytta till annan klass" onclick="openMoveStudentModal('${s.id}')">↔</button>
-      <button class="btn btn-ghost btn-xs" title="Arkivera elev" onclick="toggleArchiveStudent('${s.id}')">📦</button>
+      <span class="meta-badge ${gc}" title="Kön (T=tjej K=kille –=ej angivet)" onclick="cycleGender('${s.id}')">${gl}</span>
+      <span class="meta-badge ${s.sva?'sva-on':'sva-off'}" title="SvA" onclick="toggleSva('${s.id}')">${s.sva?'SvA':'sva'}</span>
+      <button class="btn btn-ghost btn-xs" title="Flytta" onclick="openMoveStudentModal('${s.id}')">↔</button>
+      <button class="btn btn-ghost btn-xs" title="Arkivera" onclick="toggleArchiveStudent('${s.id}')">📦</button>
       <button class="btn btn-danger btn-xs" onclick="removeStudent('${s.id}')">✕</button>
     </div>`;
   }
@@ -4082,6 +4250,33 @@ function _buildSetupWithCurriculum(cls){
    RELEASE NOTES / VERSIONSHISTORIK
 ================================================================ */
 const RELEASES = [
+  {
+    version: 'v130',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'added', icon:'🔍', text:'Elevsök i sidopanelen — sök på elevnamn och öppna direkt elevkort. Visar klass, kön, SvA och omprov-flaggor.' },
+    ]
+  },
+  {
+    version: 'v129',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'improved', icon:'📊', text:'Snyggare betygsdistribution — tydligare färger, mini-pills med antal per betyg, snittbetyg och färgkodad procentindikator.' },
+      { type:'improved', icon:'⚖',  text:'Jämför klasser-fliken förbättrad med snittbetyg och tydligare layout per klass.' },
+      { type:'added',    icon:'📐', text:'Ny flik "Jämför AO" — jämför helhetsbedömningar per arbetsområde mellan alla klasser som har samma AO.' },
+    ]
+  },
+  {
+    version: 'v128',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'added', icon:'👥', text:'Kön och SvA på elever — klicka på T/K/– och SvA-badgen i Klass-fliken.' },
+      { type:'added', icon:'🔬', text:'Ny statistikflik "Fördjupning" — jämför betygsfördelning och frånvaro per kön eller SvA med stapeldiagram.' },
+    ]
+  },
   {
     version: 'v127',
     label: 'Senaste',
@@ -4321,7 +4516,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v127';
+const LATEST_VERSION = 'v130';
 
 function openReleaseNotes(){
   openSettings();
@@ -6985,6 +7180,32 @@ function confirmMoveStudent(){
   showToast(`${s.name} flyttad till ${toCls.name}`);
 }
 
+
+function cycleGender(sid){
+  const c=currentClass();if(!c)return;
+  const s=c.students.find(x=>x.id===sid);if(!s)return;
+  s.gender=s.gender==='f'?'m':s.gender==='m'?null:'f';
+  onChange();
+  const row=document.getElementById('srow_'+sid);
+  if(row){
+    const b=row.querySelector('.meta-badge.gf,.meta-badge.gm,.meta-badge.gn');
+    if(b){b.textContent=s.gender==='f'?'T':s.gender==='m'?'K':'–';
+      b.className='meta-badge '+(s.gender==='f'?'gf':s.gender==='m'?'gm':'gn');}
+  }
+}
+
+function toggleSva(sid){
+  const c=currentClass();if(!c)return;
+  const s=c.students.find(x=>x.id===sid);if(!s)return;
+  s.sva=!s.sva;onChange();
+  const row=document.getElementById('srow_'+sid);
+  if(row){
+    const b=row.querySelectorAll('.meta-badge')[1];
+    if(b){b.className='meta-badge '+(s.sva?'sva-on':'sva-off');
+      b.textContent=s.sva?'SvA':'sva';}
+  }
+}
+
 function toggleArchiveStudent(sid){
   const c=currentClass();if(!c)return;
   const s=c.students.find(x=>x.id===sid);if(!s)return;
@@ -7255,6 +7476,296 @@ document.addEventListener('click', e=>{
   if(gb) kbFocusCell(gb);
   else if(!e.target.closest('.picker,.modal')) kbFocusCell(null);
 });
+
+
+function renderBarChart(groupStats){
+  var GRADE_ORDER=['A','B','C','D','E','E-','F','K'];
+  var GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
+  var allGrades=GRADE_ORDER.filter(function(g){return groupStats.some(function(gr){return gr.cnt&&gr.cnt[g];});});
+  if(!allGrades.length)return'';
+  var maxH=120,barW=34,gap=6,groupGap=20;
+  var maxPct=1;
+  groupStats.forEach(function(gr){
+    allGrades.forEach(function(g){
+      var v=gr.total?Math.round((gr.cnt[g]||0)/gr.total*100):0;
+      if(v>maxPct)maxPct=v;
+    });
+  });
+  var groupW=groupStats.length*(barW+gap)-gap;
+  var totalW=allGrades.length*(groupW+groupGap)-groupGap;
+  var svgW=totalW+80;
+  var svgH=maxH+90;
+  var out='';
+  allGrades.forEach(function(grade,gi){
+    var gx=gi*(groupW+groupGap)+60;
+    groupStats.forEach(function(grp,di){
+      var pct=grp.total?Math.round((grp.cnt[grade]||0)/grp.total*100):0;
+      var bh=Math.round(pct/maxPct*maxH)||2;
+      var bx=gx+di*(barW+gap);
+      var by=maxH+20-bh;
+      out+='<rect x="'+bx+'" y="'+by+'" width="'+barW+'" height="'+bh+'" rx="3" fill="'+grp.color+'" opacity="0.85"/>';
+      if(pct)out+='<text x="'+(bx+barW/2)+'" y="'+(by-4)+'" text-anchor="middle" font-size="9" fill="'+grp.color+'" font-weight="600">'+pct+'%</text>';
+    });
+    out+='<text x="'+(gx+groupW/2)+'" y="'+(maxH+36)+'" text-anchor="middle" font-size="11" font-weight="700" fill="'+(GCOL[grade]||'#666')+'">'+grade+'</text>';
+  });
+  var yAxis='';
+  [0,25,50,75,100].forEach(function(v){
+    var y=maxH+20-Math.round(v/maxPct*maxH);
+    yAxis+='<line x1="54" y1="'+y+'" x2="'+(svgW-10)+'" y2="'+y+'" stroke="#e5e7eb" stroke-width="0.5"/>';
+    yAxis+='<text x="50" y="'+(y+4)+'" text-anchor="end" font-size="9" fill="#9ca3af">'+v+'%</text>';
+  });
+  var legend=groupStats.map(function(gr,i){
+    return '<g transform="translate('+(i*160+60)+','+(svgH-14)+')">'
+      +'<rect width="12" height="12" rx="2" fill="'+gr.color+'"/>'
+      +'<text x="16" y="10" font-size="11" fill="#374151">'+gr.label+'</text></g>';
+  }).join('');
+  return '<svg width="100%" viewBox="0 0 '+svgW+' '+svgH+'" style="overflow:visible">'+yAxis+out+legend+'</svg>';
+}
+
+
+function renderStatDeep(){
+  var c=currentClass();
+  if(!c||!c.students.filter(function(s){return !s.archived;}).length)
+    return '<p class="text-sm text-muted" style="padding:20px">Välj en klass med elever.</p>';
+
+  var subs=classSubjects(c);
+  var active=c.students.filter(function(s){return !s.archived;});
+  var curSk=document.getElementById('deep-sk')?.value||subs[0]||'samhall';
+  var curYr=parseInt(document.getElementById('deep-yr')?.value||'7');
+  var curMode=document.getElementById('deep-mode')?.value||'helhets';
+  var curGroup=document.getElementById('deep-group')?.value||'none';
+  var GRADE_ORDER=['A','B','C','D','E','E-','F','K'];
+
+  function getGrades(sid){
+    var result=[];
+    if(curMode==='helhets'){
+      var areas=(c.areas[curSk]||{})[curYr]||[];
+      for(var ai=0;ai<areas.length;ai++)
+        for(var mi=0;mi<areas[ai].moments.length;mi++){
+          if(!areas[ai].moments[mi].toLowerCase().includes('helhet'))continue;
+          var key=gKey(sid,curSk,curYr,ai,mi);
+          var g=effectiveGrade(c,key,c.grades[key]||'');
+          if(g)result.push({grade:g,area:areas[ai].name});
+        }
+    } else if(curMode==='final-HT'||curMode==='final-VT'){
+      var term=curMode.split('-')[1];
+      var fg=((c.finalGrades[sid]||{})[curSk]||{})[curYr]?.[term]||'';
+      if(fg)result.push({grade:fg,area:term});
+    } else {
+      getAllMomentGrades(c,curSk,curYr).filter(function(x){return x.sid===sid;})
+        .forEach(function(x){result.push({grade:x.grade,area:x.area||''});});
+    }
+    return result;
+  }
+
+  function buildDist(students){
+    var cnt={};var total=0;
+    students.forEach(function(s){
+      getGrades(s.id).forEach(function(x){
+        cnt[x.grade]=(cnt[x.grade]||0)+1;total++;
+      });
+    });
+    return{cnt:cnt,total:total};
+  }
+
+  function avgScore(students){
+    var rank={A:6,B:5,C:4,D:3,E:2,'E-':1,F:0};
+    var sum=0,n=0;
+    students.forEach(function(s){
+      getGrades(s.id).forEach(function(x){
+        if(rank[x.grade]!==undefined){sum+=rank[x.grade];n++;}
+      });
+    });
+    return n?Math.round(sum/n*10)/10:null;
+  }
+
+  // Bygg grupper
+  var groups=[];
+  if(curGroup==='none'){
+    groups.push({label:'Hela klassen ('+active.length+')',students:active,color:'#0ea5e9'});
+  } else if(curGroup==='gender'){
+    var girls=active.filter(function(s){return s.gender==='f';});
+    var boys=active.filter(function(s){return s.gender==='m';});
+    var other=active.filter(function(s){return !s.gender;});
+    if(girls.length)groups.push({label:'Tjejer ('+girls.length+')',students:girls,color:'#ec4899'});
+    if(boys.length)groups.push({label:'Killar ('+boys.length+')',students:boys,color:'#3b82f6'});
+    if(other.length)groups.push({label:'Ej angivet ('+other.length+')',students:other,color:'#94a3b8'});
+  } else if(curGroup==='sva'){
+    var sva=active.filter(function(s){return s.sva;});
+    var nsva=active.filter(function(s){return !s.sva;});
+    if(sva.length)groups.push({label:'SvA ('+sva.length+')',students:sva,color:'#f59e0b'});
+    if(nsva.length)groups.push({label:'Ej SvA ('+nsva.length+')',students:nsva,color:'#10b981'});
+  }
+
+  if(!groups.length)return'<p class="text-sm text-muted" style="padding:20px">Inga elever i vald grupp.</p>';
+
+  // Beräkna stats
+  var groupStats=groups.map(function(gr){
+    var d=buildDist(gr.students);
+    return{label:gr.label,students:gr.students,color:gr.color,cnt:d.cnt,total:d.total,avg:avgScore(gr.students)};
+  });
+
+  // Kontroller
+  var subOpts=subs.map(function(sk){
+    var def=subjectDef(sk,c);
+    return '<option value="'+sk+'"'+(sk===curSk?' selected':'')+'>'+def.icon+' '+def.name+'</option>';
+  }).join('');
+  var yrOpts=YEARS.map(function(y){
+    return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>ÅK '+y+'</option>';
+  }).join('');
+  var modeOpts=[
+    {v:'helhets',l:'Helhetsbedömning'},
+    {v:'final-HT',l:'Terminsbetyg HT'},
+    {v:'final-VT',l:'Terminsbetyg VT'},
+    {v:'moments',l:'Alla moment'}
+  ].map(function(o){return '<option value="'+o.v+'"'+(o.v===curMode?' selected':'')+'>'+o.l+'</option>';}).join('');
+  var groupOpts=[
+    {v:'none',l:'Hela klassen'},
+    {v:'gender',l:'Kön (tjej/kille)'},
+    {v:'sva',l:'SvA / Ej SvA'}
+  ].map(function(o){return '<option value="'+o.v+'"'+(o.v===curGroup?' selected':'')+'>'+o.l+'</option>';}).join('');
+
+  var ctrl='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">'
+    +'<select id="deep-sk" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+subOpts+'</select>'
+    +'<select id="deep-yr" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+yrOpts+'</select>'
+    +'<select id="deep-mode" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+modeOpts+'</select>'
+    +'<select id="deep-group" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+groupOpts+'</select>'
+    +'</div>';
+
+  // KPI-rad
+  var kpis=groupStats.map(function(gr){
+    return '<div style="background:var(--surface2);border-radius:8px;padding:10px 16px;min-width:120px;text-align:center">'
+      +'<div style="font-size:.72rem;color:var(--text-muted);margin-bottom:3px">'+gr.label+'</div>'
+      +'<div style="font-size:1.3rem;font-weight:700;color:var(--accent)">'+(gr.avg!==null?gr.avg:'–')+'</div>'
+      +'<div style="font-size:.68rem;color:var(--text-muted)">snitt · '+gr.total+' betyg</div>'
+      +'</div>';
+  }).join('');
+  var kpiRow='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">'+kpis+'</div>';
+
+  // Stapeldiagram
+  var chart=renderBarChart(groupStats);
+  var chartHtml=chart
+    ?'<div style="margin-bottom:16px;overflow-x:auto">'+chart+'</div>'
+    :'<p class="text-sm text-muted">Inga betyg att visa för vald kombination.</p>';
+
+  // Frånvaroanalys
+  var absHtml='';
+  if(curGroup!=='none'){
+    var absCards=groupStats.map(function(gr){
+      var totO=0,totG=0;
+      gr.students.forEach(function(s){
+        YEARS.forEach(function(yr){TERMS.forEach(function(t){
+          var ab=(c.absence[s.id]||{})[yr]?.[t]||{};
+          totO+=(ab.ogiltig||0);totG+=(ab.giltig||0);
+        });});
+      });
+      var n=gr.students.length||1;
+      return '<div style="background:var(--surface2);border-radius:8px;padding:8px 14px;min-width:140px">'
+        +'<div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px">'+gr.label+'</div>'
+        +'<div style="font-size:.78rem">Ogiltig: <strong>'+Math.round(totO/n*10)/10+'h</strong>/elev</div>'
+        +'<div style="font-size:.78rem">Giltig: <strong>'+Math.round(totG/n*10)/10+'h</strong>/elev</div>'
+        +'</div>';
+    }).join('');
+    absHtml='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft)">'
+      +'<div style="font-weight:600;font-size:.82rem;margin-bottom:8px">Frånvaro per grupp</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+absCards+'</div></div>';
+  }
+
+  return '<div>'+ctrl+kpiRow+chartHtml+absHtml+'</div>';
+}
+
+
+function renderStatAreas(){
+  if(db.classes.length<1)return'<p class="text-sm text-muted" style="padding:20px">Inga klasser.</p>';
+  var allSubs=[...new Set(db.classes.flatMap(function(cls){return classSubjects(cls);}))];
+  var curSk=document.getElementById('ao-sk')?.value||allSubs[0]||'samhall';
+  var curYr=parseInt(document.getElementById('ao-yr')?.value||'7');
+  var GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
+  var order=['A','B','C','D','E','E-','F','K'];
+  var rank={A:6,B:5,C:4,D:3,E:2,'E-':1,F:0};
+
+  // Samla alla AO-namn som finns för detta ämne+år i någon klass
+  var allAreaNames=[];
+  db.classes.forEach(function(cls){
+    var areas=(cls.areas[curSk]||{})[curYr]||[];
+    areas.forEach(function(a){if(!allAreaNames.includes(a.name))allAreaNames.push(a.name);});
+  });
+
+  if(!allAreaNames.length)return'<p class="text-sm text-muted" style="padding:20px">Inga arbetsområden för valt ämne och årskurs.</p>';
+
+  // Bygg tabell: rader=klasser, kolumner=AO, cell=snittbetyg + mini-bar
+  var subOpts=allSubs.map(function(sk){
+    var cls=db.classes.find(function(c){return classSubjects(c).includes(sk);});
+    var def=cls?subjectDef(sk,cls):{key:sk,name:sk,icon:''};
+    return '<option value="'+sk+'"'+(sk===curSk?' selected':'')+'>'+def.icon+' '+def.name+'</option>';
+  }).join('');
+  var yrOpts=YEARS.map(function(y){
+    return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>'+y+'</option>';
+  }).join('');
+
+  var ctrl='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">'
+    +'<select id="ao-sk" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+subOpts+'</select>'
+    +'<select id="ao-yr" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)"><option value="7" '+(curYr===7?'selected':'')+'>ÅK 7</option><option value="8" '+(curYr===8?'selected':'')+'>ÅK 8</option><option value="9" '+(curYr===9?'selected':'')+'>ÅK 9</option></select>'
+    +'</div>';
+
+  // Bygg innehåll per AO
+  var sections='';
+  allAreaNames.forEach(function(areaName){
+    var clsData=[];
+    db.classes.forEach(function(cls){
+      var areas=(cls.areas[curSk]||{})[curYr]||[];
+      var ai=areas.findIndex(function(a){return a.name===areaName;});
+      if(ai<0)return;
+      var mi=areas[ai].moments.findIndex(function(m){return m.toLowerCase().includes('helhet');});
+      if(mi<0)return;
+      var active=cls.students.filter(function(s){return !s.archived;});
+      var grades=[];
+      active.forEach(function(s){
+        var key=gKey(s.id,curSk,curYr,ai,mi);
+        var g=effectiveGrade(cls,key,cls.grades[key]||'');
+        if(g)grades.push(g);
+      });
+      if(!grades.length)return;
+      var cnt={};grades.forEach(function(g){cnt[g]=(cnt[g]||0)+1;});
+      var total=grades.length;
+      var sum=0,n=0;
+      grades.forEach(function(g){if(rank[g]!==undefined){sum+=rank[g];n++;}});
+      var avg=n?Math.round(sum/n*10)/10:null;
+      var pctGood=Math.round(order.filter(function(k){return['A','B','C','D','E'].includes(k);}).reduce(function(s,k){return s+(cnt[k]||0);},0)/total*100);
+      clsData.push({cls:cls,grades:grades,cnt:cnt,total:total,avg:avg,pctGood:pctGood});
+    });
+    if(!clsData.length)return;
+
+    var rows=clsData.map(function(d){
+      var segs=order.filter(function(k){return d.cnt[k];}).map(function(k){
+        var pct=Math.round(d.cnt[k]/d.total*100);
+        return '<div class="dist-seg" style="width:'+pct+'%;background:'+GCOL[k]+'" title="'+gradeLabel(k)+': '+d.cnt[k]+' ('+pct+'%)'+'"><span class="dist-seg-label">'+(pct>8?gradeLabel(k):'')+'</span></div>';
+      }).join('');
+      var pills=order.filter(function(k){return d.cnt[k];}).map(function(k){
+        return '<span class="dist-bar-mini-item"><span class="dist-bar-mini-dot" style="background:'+GCOL[k]+'"></span>'+gradeLabel(k)+' '+d.cnt[k]+'</span>';
+      }).join('');
+      return '<div class="dist-bar-wrap" style="margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'
+        +'<span style="font-weight:600;font-size:.82rem">'+esc(d.cls.name)+(d.cls.year?' <span style="font-weight:400;color:var(--text-muted);font-size:.73rem">('+d.cls.year+')</span>':'')+'</span>'
+        +'<span style="display:flex;gap:10px;font-size:.73rem;color:var(--text-muted)">'
+        +'<span>'+d.total+' elever</span>'
+        +'<span style="color:'+(d.pctGood>=80?'#16a34a':d.pctGood<50?'#dc2626':'var(--text)')+'"><strong>'+d.pctGood+'%</strong> ≥E</span>'
+        +(d.avg!==null?'<span>snitt <strong>'+d.avg+'</strong></span>':'')
+        +'</span></div>'
+        +'<div class="dist-bar">'+segs+'</div>'
+        +'<div class="dist-bar-mini">'+pills+'</div>'
+        +'</div>';
+    }).join('');
+
+    sections+='<div style="margin-bottom:18px;padding:12px 14px;background:var(--surface);border:1px solid var(--border-soft);border-radius:10px">'
+      +'<div style="font-weight:700;font-size:.88rem;margin-bottom:10px;color:var(--text)">'+esc(areaName)+'</div>'
+      +rows+'</div>';
+  });
+
+  if(!sections)return'<p class="text-sm text-muted" style="padding:20px">Inga helhetsbedömningar registrerade för detta urval.</p>';
+
+  return '<div>'+ctrl+sections+'</div>';
+}
 
 (async function boot(){
   // ── Electron window focus recovery ─────────────────────────────────
