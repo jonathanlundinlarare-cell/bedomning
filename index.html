@@ -4296,6 +4296,15 @@ function _buildSetupWithCurriculum(cls){
 ================================================================ */
 const RELEASES = [
   {
+    version: 'v136',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'added',    icon:'📐', text:'Fördjupning: ny AO-dropdown visas när helhetsbedömning är valt — filtrera statistiken per arbetsområde.' },
+      { type:'improved', icon:'⚖',  text:'Jämför AO: välj fritt vilka två klasser, vilket ämne och vilket år. Visar sida vid sida utan krav på exakta namn.' },
+    ]
+  },
+  {
     version: 'v135',
     label: 'Senaste',
     date: '2026-03',
@@ -4605,7 +4614,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v135';
+const LATEST_VERSION = 'v136';
 
 function openReleaseNotes(){
   openSettings();
@@ -7614,7 +7623,7 @@ function renderBarChart(groupStats){
 function renderStatDeep(){
   var c=currentClass();
   if(!c||!c.students.filter(function(s){return !s.archived;}).length)
-    return '<p class="text-sm text-muted" style="padding:20px">Välj en klass med elever.</p>';
+    return renderStatInfo('deep')+'<p class="text-sm text-muted" style="padding:20px">Välj en klass med elever.</p>';
 
   var subs=classSubjects(c);
   var active=c.students.filter(function(s){return !s.archived;});
@@ -7622,26 +7631,33 @@ function renderStatDeep(){
   var curYr=parseInt(document.getElementById('deep-yr')?.value||'7');
   var curMode=document.getElementById('deep-mode')?.value||'helhets';
   var curGroup=document.getElementById('deep-group')?.value||'none';
+  var curAo=document.getElementById('deep-ao')?.value||'__all__';
   var GRADE_ORDER=['A','B','C','D','E','E-','F','K'];
+
+  // AO-alternativ för helhets-läget
+  var areas=(c.areas[curSk]||{})[curYr]||[];
+  var aoOpts='<option value="__all__"'+(curAo==='__all__'?' selected':'')+'>Alla arbetsområden</option>'
+    +areas.map(function(a){return '<option value="'+a.name+'"'+(curAo===a.name?' selected':'')+'>'+esc(a.name)+'</option>';}).join('');
 
   function getGrades(sid){
     var result=[];
     if(curMode==='helhets'){
-      var areas=(c.areas[curSk]||{})[curYr]||[];
-      for(var ai=0;ai<areas.length;ai++)
+      for(var ai=0;ai<areas.length;ai++){
+        if(curAo!=='__all__'&&areas[ai].name!==curAo)continue;
         for(var mi=0;mi<areas[ai].moments.length;mi++){
           if(!areas[ai].moments[mi].toLowerCase().includes('helhet'))continue;
           var key=gKey(sid,curSk,curYr,ai,mi);
           var g=effectiveGrade(c,key,c.grades[key]||'');
           if(g)result.push({grade:g,area:areas[ai].name});
         }
+      }
     } else if(curMode==='final-HT'||curMode==='final-VT'){
       var term=curMode.split('-')[1];
       var fg=((c.finalGrades[sid]||{})[curSk]||{})[curYr]?.[term]||'';
       if(fg)result.push({grade:fg,area:term});
     } else {
       getAllMomentGrades(c,curSk,curYr).filter(function(x){return x.sid===sid;})
-        .forEach(function(x){result.push({grade:x.grade,area:x.area||''});});
+        .forEach(function(x){result.push({grade:x.grade,area:x.area||'',moment:x.moment||''});});
     }
     return result;
   }
@@ -7649,9 +7665,7 @@ function renderStatDeep(){
   function buildDist(students){
     var cnt={};var total=0;
     students.forEach(function(s){
-      getGrades(s.id).forEach(function(x){
-        cnt[x.grade]=(cnt[x.grade]||0)+1;total++;
-      });
+      getGrades(s.id).forEach(function(x){cnt[x.grade]=(cnt[x.grade]||0)+1;total++;});
     });
     return{cnt:cnt,total:total};
   }
@@ -7660,14 +7674,11 @@ function renderStatDeep(){
     var rank={A:6,B:5,C:4,D:3,E:2,'E-':1,F:0};
     var sum=0,n=0;
     students.forEach(function(s){
-      getGrades(s.id).forEach(function(x){
-        if(rank[x.grade]!==undefined){sum+=rank[x.grade];n++;}
-      });
+      getGrades(s.id).forEach(function(x){if(rank[x.grade]!==undefined){sum+=rank[x.grade];n++;}});
     });
     return n?Math.round(sum/n*10)/10:null;
   }
 
-  // Bygg grupper
   var groups=[];
   if(curGroup==='none'){
     groups.push({label:'Hela klassen ('+active.length+')',students:active,color:'#0ea5e9'});
@@ -7685,42 +7696,31 @@ function renderStatDeep(){
     if(nsva.length)groups.push({label:'Ej SvA ('+nsva.length+')',students:nsva,color:'#10b981'});
   }
 
-  if(!groups.length)return'<p class="text-sm text-muted" style="padding:20px">Inga elever i vald grupp.</p>';
+  if(!groups.length)return renderStatInfo('deep')+'<p class="text-sm text-muted" style="padding:20px">Inga elever i vald grupp.</p>';
 
-  // Beräkna stats
   var groupStats=groups.map(function(gr){
     var d=buildDist(gr.students);
     return{label:gr.label,students:gr.students,color:gr.color,cnt:d.cnt,total:d.total,avg:avgScore(gr.students)};
   });
 
-  // Kontroller
-  var subOpts=subs.map(function(sk){
-    var def=subjectDef(sk,c);
-    return '<option value="'+sk+'"'+(sk===curSk?' selected':'')+'>'+def.icon+' '+def.name+'</option>';
-  }).join('');
-  var yrOpts=YEARS.map(function(y){
-    return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>ÅK '+y+'</option>';
-  }).join('');
-  var modeOpts=[
-    {v:'helhets',l:'Helhetsbedömning'},
-    {v:'final-HT',l:'Terminsbetyg HT'},
-    {v:'final-VT',l:'Terminsbetyg VT'},
-    {v:'moments',l:'Alla moment'}
-  ].map(function(o){return '<option value="'+o.v+'"'+(o.v===curMode?' selected':'')+'>'+o.l+'</option>';}).join('');
-  var groupOpts=[
-    {v:'none',l:'Hela klassen'},
-    {v:'gender',l:'Kön (tjej/kille)'},
-    {v:'sva',l:'SvA / Ej SvA'}
-  ].map(function(o){return '<option value="'+o.v+'"'+(o.v===curGroup?' selected':'')+'>'+o.l+'</option>';}).join('');
+  var subOpts=subs.map(function(sk){var def=subjectDef(sk,c);return '<option value="'+sk+'"'+(sk===curSk?' selected':'')+'>'+def.icon+' '+def.name+'</option>';}).join('');
+  var yrOpts=YEARS.map(function(y){return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>ÅK '+y+'</option>';}).join('');
+  var modeOpts=[{v:'helhets',l:'Helhetsbedömning'},{v:'final-HT',l:'Terminsbetyg HT'},{v:'final-VT',l:'Terminsbetyg VT'},{v:'moments',l:'Alla moment'}]
+    .map(function(o){return '<option value="'+o.v+'"'+(o.v===curMode?' selected':'')+'>'+o.l+'</option>';}).join('');
+  var groupOpts=[{v:'none',l:'Hela klassen'},{v:'gender',l:'Kön (tjej/kille)'},{v:'sva',l:'SvA / Ej SvA'}]
+    .map(function(o){return '<option value="'+o.v+'"'+(o.v===curGroup?' selected':'')+'>'+o.l+'</option>';}).join('');
+
+  var selStyle='padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)';
+  var aoSel=curMode==='helhets'?'<select id="deep-ao" onchange="renderStatTab()" style="'+selStyle+'">'+aoOpts+'</select>':'';
 
   var ctrl='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">'
-    +'<select id="deep-sk" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+subOpts+'</select>'
-    +'<select id="deep-yr" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+yrOpts+'</select>'
-    +'<select id="deep-mode" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+modeOpts+'</select>'
-    +'<select id="deep-group" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+groupOpts+'</select>'
+    +'<select id="deep-sk" onchange="renderStatTab()" style="'+selStyle+'">'+subOpts+'</select>'
+    +'<select id="deep-yr" onchange="renderStatTab()" style="'+selStyle+'">'+yrOpts+'</select>'
+    +'<select id="deep-mode" onchange="renderStatTab()" style="'+selStyle+'">'+modeOpts+'</select>'
+    +aoSel
+    +'<select id="deep-group" onchange="renderStatTab()" style="'+selStyle+'">'+groupOpts+'</select>'
     +'</div>';
 
-  // KPI-rad
   var kpis=groupStats.map(function(gr){
     return '<div style="background:var(--surface2);border-radius:8px;padding:10px 16px;min-width:120px;text-align:center">'
       +'<div style="font-size:.72rem;color:var(--text-muted);margin-bottom:3px">'+gr.label+'</div>'
@@ -7728,25 +7728,16 @@ function renderStatDeep(){
       +'<div style="font-size:.68rem;color:var(--text-muted)">snitt · '+gr.total+' betyg</div>'
       +'</div>';
   }).join('');
-  var kpiRow='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">'+kpis+'</div>';
 
-  // Stapeldiagram
   var chart=renderBarChart(groupStats);
-  var chartHtml=chart
-    ?'<div style="margin-bottom:16px;overflow-x:auto">'+chart+'</div>'
+  var chartHtml=chart?'<div style="margin-bottom:16px;overflow-x:auto">'+chart+'</div>'
     :'<p class="text-sm text-muted">Inga betyg att visa för vald kombination.</p>';
 
-  // Frånvaroanalys
   var absHtml='';
   if(curGroup!=='none'){
     var absCards=groupStats.map(function(gr){
       var totO=0,totG=0;
-      gr.students.forEach(function(s){
-        YEARS.forEach(function(yr){TERMS.forEach(function(t){
-          var ab=(c.absence[s.id]||{})[yr]?.[t]||{};
-          totO+=(ab.ogiltig||0);totG+=(ab.giltig||0);
-        });});
-      });
+      gr.students.forEach(function(s){YEARS.forEach(function(yr){TERMS.forEach(function(t){var ab=(c.absence[s.id]||{})[yr]?.[t]||{};totO+=(ab.ogiltig||0);totG+=(ab.giltig||0);});});});
       var n=gr.students.length||1;
       return '<div style="background:var(--surface2);border-radius:8px;padding:8px 14px;min-width:140px">'
         +'<div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px">'+gr.label+'</div>'
@@ -7759,299 +7750,159 @@ function renderStatDeep(){
       +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+absCards+'</div></div>';
   }
 
-  return renderStatInfo('deep')+'<div>'+ctrl+kpiRow+chartHtml+absHtml+'</div>';
+  return renderStatInfo('deep')+'<div>'+ctrl+'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">'+kpis+'</div>'+chartHtml+absHtml+'</div>';
 }
 
 
 function renderStatAreas(){
   if(db.classes.length<1)return'<p class="text-sm text-muted" style="padding:20px">Inga klasser.</p>';
-  var allSubs=[...new Set(db.classes.flatMap(function(cls){return classSubjects(cls);}))];
-  var curSk=document.getElementById('ao-sk')?.value||allSubs[0]||'samhall';
-  var curYr=parseInt(document.getElementById('ao-yr')?.value||'7');
+
+  var selStyle='padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)';
   var GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
   var order=['A','B','C','D','E','E-','F','K'];
   var rank={A:6,B:5,C:4,D:3,E:2,'E-':1,F:0};
 
-  // Samla alla AO-namn som finns för detta ämne+år i någon klass
-  var allAreaNames=[];
-  db.classes.forEach(function(cls){
+  // Kontrollvärden
+  var activeCls=db.classes.filter(function(c){return !c.archived;});
+  var allSubs=[...new Set(activeCls.flatMap(function(c){return classSubjects(c);}))];
+  var curSk=document.getElementById('ao-sk')?.value||allSubs[0]||'';
+  var curYr=parseInt(document.getElementById('ao-yr')?.value||'7');
+  var curMode=document.getElementById('ao-mode')?.value||'helhets';
+
+  // Hitta alla unika AO-namn för detta ämne+år över alla aktiva klasser
+  var aoNames=[];
+  activeCls.forEach(function(cls){
     var areas=(cls.areas[curSk]||{})[curYr]||[];
-    areas.forEach(function(a){if(!allAreaNames.includes(a.name))allAreaNames.push(a.name);});
+    areas.forEach(function(a){if(!aoNames.includes(a.name))aoNames.push(a.name);});
   });
+  var curAo=document.getElementById('ao-area')?.value||aoNames[0]||'';
 
-  if(!allAreaNames.length)return'<div style="padding:16px;background:var(--surface2);border-radius:8px;font-size:.82rem;color:var(--text-muted)">Inga arbetsområden hittades för valt ämne och årskurs. Se till att klasserna har samma ämne och att arbetsområden är skapade.</div>';
-
-  // Bygg tabell: rader=klasser, kolumner=AO, cell=snittbetyg + mini-bar
+  // Kontroller
   var subOpts=allSubs.map(function(sk){
-    var cls=db.classes.find(function(c){return classSubjects(c).includes(sk);});
-    var def=cls?subjectDef(sk,cls):{key:sk,name:sk,icon:''};
+    var cls=activeCls.find(function(c){return classSubjects(c).includes(sk);});
+    var def=cls?subjectDef(sk,cls):{icon:'',name:sk};
     return '<option value="'+sk+'"'+(sk===curSk?' selected':'')+'>'+def.icon+' '+def.name+'</option>';
   }).join('');
-  var yrOpts=YEARS.map(function(y){
-    return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>'+y+'</option>';
+
+  var yrOpts=[7,8,9].map(function(y){
+    return '<option value="'+y+'"'+(y===curYr?' selected':'')+'>ÅK '+y+'</option>';
   }).join('');
 
-  var ctrl='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">'
-    +'<select id="ao-sk" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)">'+subOpts+'</select>'
-    +'<select id="ao-yr" onchange="renderStatTab()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--surface)"><option value="7" '+(curYr===7?'selected':'')+'>ÅK 7</option><option value="8" '+(curYr===8?'selected':'')+'>ÅK 8</option><option value="9" '+(curYr===9?'selected':'')+'>ÅK 9</option></select>'
+  var modeOpts=[
+    {v:'helhets',l:'Helhetsbedömning'},
+    {v:'final-HT',l:'Terminsbetyg HT'},
+    {v:'final-VT',l:'Terminsbetyg VT'},
+    {v:'moments',l:'Alla moment'}
+  ].map(function(o){
+    return '<option value="'+o.v+'"'+(o.v===curMode?' selected':'')+'>'+o.l+'</option>';
+  }).join('');
+
+  var aoOpts=(curMode==='helhets'||curMode==='moments')
+    ?'<option value="">Alla AO</option>'+aoNames.map(function(n){
+        return '<option value="'+esc(n)+'"'+(n===curAo?' selected':'')+'>'+esc(n)+'</option>';
+      }).join('')
+    :'';
+
+  var aoSel=(curMode==='helhets'||curMode==='moments')
+    ?'<select id="ao-area" onchange="renderStatTab()" style="'+selStyle+'">'+aoOpts+'</select>'
+    :'';
+
+  var ctrl=renderStatInfo('areas')
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">'
+    +'<select id="ao-sk" onchange="renderStatTab()" style="'+selStyle+'">'+subOpts+'</select>'
+    +'<select id="ao-yr" onchange="renderStatTab()" style="'+selStyle+'">'+yrOpts+'</select>'
+    +'<select id="ao-mode" onchange="renderStatTab()" style="'+selStyle+'">'+modeOpts+'</select>'
+    +aoSel
     +'</div>';
 
-  // Bygg innehåll per AO
-  var sections='';
-  allAreaNames.forEach(function(areaName){
-    var clsData=[];
-    db.classes.forEach(function(cls){
-      var areas=(cls.areas[curSk]||{})[curYr]||[];
-      var ai=areas.findIndex(function(a){return a.name===areaName;});
-      if(ai<0)return;
-      var mi=areas[ai].moments.findIndex(function(m){return m.toLowerCase().includes('helhet');});
-      if(mi<0)return;
-      var active=cls.students.filter(function(s){return !s.archived;});
-      var grades=[];
+  if(!activeCls.length||!allSubs.length)
+    return ctrl+'<div style="padding:12px;color:var(--text-muted);font-size:.82rem">Inga aktiva klasser med betyg hittades.</div>';
+
+  // Bygg data per klass
+  function getGradesForCls(cls){
+    var areas=(cls.areas[curSk]||{})[curYr]||[];
+    var active=cls.students.filter(function(s){return !s.archived;});
+    var grades=[];
+    if(curMode==='helhets'){
+      for(var ai=0;ai<areas.length;ai++){
+        if(curAo&&areas[ai].name!==curAo)continue;
+        var mi=areas[ai].moments.findIndex(function(m){return m.toLowerCase().includes('helhet');});
+        if(mi<0)continue;
+        active.forEach(function(s){
+          var key=gKey(s.id,curSk,curYr,ai,mi);
+          var g=effectiveGrade(cls,key,cls.grades[key]||'');
+          if(g)grades.push(g);
+        });
+      }
+    } else if(curMode==='final-HT'||curMode==='final-VT'){
+      var term=curMode.split('-')[1];
       active.forEach(function(s){
-        var key=gKey(s.id,curSk,curYr,ai,mi);
-        var g=effectiveGrade(cls,key,cls.grades[key]||'');
+        var g=((cls.finalGrades[s.id]||{})[curSk]||{})[curYr]?.[term]||'';
         if(g)grades.push(g);
       });
-      if(!grades.length)return;
-      var cnt={};grades.forEach(function(g){cnt[g]=(cnt[g]||0)+1;});
-      var total=grades.length;
-      var sum=0,n=0;
-      grades.forEach(function(g){if(rank[g]!==undefined){sum+=rank[g];n++;}});
-      var avg=n?Math.round(sum/n*10)/10:null;
-      var pctGood=Math.round(order.filter(function(k){return['A','B','C','D','E'].includes(k);}).reduce(function(s,k){return s+(cnt[k]||0);},0)/total*100);
-      clsData.push({cls:cls,grades:grades,cnt:cnt,total:total,avg:avg,pctGood:pctGood});
-    });
-    if(!clsData.length)return;
+    } else { // moments
+      var allAreas=(cls.areas[curSk]||{})[curYr]||[];
+      for(var ai2=0;ai2<allAreas.length;ai2++){
+        if(curAo&&allAreas[ai2].name!==curAo)continue;
+        for(var mi2=0;mi2<allAreas[ai2].moments.length;mi2++){
+          active.forEach(function(s){
+            var key=gKey(s.id,curSk,curYr,ai2,mi2);
+            var g=effectiveGrade(cls,key,cls.grades[key]||'');
+            if(g)grades.push(g);
+          });
+        }
+      }
+    }
+    return grades;
+  }
 
-    var rows=clsData.map(function(d){
-      var segs=order.filter(function(k){return d.cnt[k];}).map(function(k){
-        var pct=Math.round(d.cnt[k]/d.total*100);
-        return '<div class="dist-seg" style="width:'+pct+'%;background:'+GCOL[k]+'" title="'+gradeLabel(k)+': '+d.cnt[k]+' ('+pct+'%)'+'"><span class="dist-seg-label">'+(pct>8?gradeLabel(k):'')+'</span></div>';
-      }).join('');
-      var pills=order.filter(function(k){return d.cnt[k];}).map(function(k){
-        return '<span class="dist-bar-mini-item"><span class="dist-bar-mini-dot" style="background:'+GCOL[k]+'"></span>'+gradeLabel(k)+' '+d.cnt[k]+'</span>';
-      }).join('');
-      return '<div class="dist-bar-wrap" style="margin-bottom:10px">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'
-        +'<span style="font-weight:600;font-size:.82rem">'+esc(d.cls.name)+(d.cls.year?' <span style="font-weight:400;color:var(--text-muted);font-size:.73rem">('+d.cls.year+')</span>':'')+'</span>'
-        +'<span style="display:flex;gap:10px;font-size:.73rem;color:var(--text-muted)">'
-        +'<span>'+d.total+' elever</span>'
-        +'<span style="color:'+(d.pctGood>=80?'#16a34a':d.pctGood<50?'#dc2626':'var(--text)')+'"><strong>'+d.pctGood+'%</strong> ≥E</span>'
-        +(d.avg!==null?'<span>snitt <strong>'+d.avg+'</strong></span>':'')
-        +'</span></div>'
-        +'<div class="dist-bar">'+segs+'</div>'
-        +'<div class="dist-bar-mini">'+pills+'</div>'
-        +'</div>';
+  var rows='';
+  var anyData=false;
+  activeCls.forEach(function(cls){
+    if(!classSubjects(cls).includes(curSk))return;
+    var grades=getGradesForCls(cls);
+    if(!grades.length)return;
+    anyData=true;
+    var cnt={};grades.forEach(function(g){cnt[g]=(cnt[g]||0)+1;});
+    var total=grades.length;
+    var sum=0,n=0;grades.forEach(function(g){if(rank[g]!==undefined){sum+=rank[g];n++;}});
+    var avg=n?Math.round(sum/n*10)/10:null;
+    var pctGood=Math.round(order.filter(function(k){return['A','B','C','D','E'].includes(k);})
+      .reduce(function(s,k){return s+(cnt[k]||0);},0)/total*100);
+    var segs=order.filter(function(k){return cnt[k];}).map(function(k){
+      var pct=Math.round(cnt[k]/total*100);
+      return '<div class="dist-seg" style="width:'+pct+'%;background:'+GCOL[k]+'" title="'+gradeLabel(k)+': '+cnt[k]+' ('+pct+'%)'+'"><span class="dist-seg-label">'+(pct>7?gradeLabel(k):'')+'</span></div>';
     }).join('');
-
-    sections+='<div style="margin-bottom:18px;padding:12px 14px;background:var(--surface);border:1px solid var(--border-soft);border-radius:10px">'
-      +'<div style="font-weight:700;font-size:.88rem;margin-bottom:10px;color:var(--text)">'+esc(areaName)+'</div>'
-      +rows+'</div>';
+    var pills=order.filter(function(k){return cnt[k];}).map(function(k){
+      return '<span class="dist-bar-mini-item"><span class="dist-bar-mini-dot" style="background:'+GCOL[k]+'"></span>'+gradeLabel(k)+' '+cnt[k]+'</span>';
+    }).join('');
+    rows+='<div class="dist-bar-wrap" style="margin-bottom:12px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+      +'<span style="font-weight:700;font-size:.85rem">'+esc(cls.name)+(cls.year?' <span style="font-weight:400;color:var(--text-muted);font-size:.76rem">('+esc(cls.year)+')</span>':'')+'</span>'
+      +'<span style="display:flex;gap:10px;font-size:.73rem;color:var(--text-muted)">'
+      +'<span>'+total+' betyg</span>'
+      +'<span style="color:'+(pctGood>=80?'#16a34a':pctGood<50?'#dc2626':'var(--text)')+'"><strong>'+pctGood+'%</strong> \u2265E</span>'
+      +(avg!==null?'<span>snitt <strong>'+avg+'</strong></span>':'')
+      +'</span></div>'
+      +'<div class="dist-bar">'+segs+'</div>'
+      +'<div class="dist-bar-mini">'+pills+'</div>'
+      +'</div>';
   });
 
-  if(!sections)return'<div style="padding:16px;background:var(--surface2);border-radius:8px;font-size:.82rem;color:var(--text-muted)">Inga helhetsbedömningar registrerade ännu för detta urval. Sätt helhetsbedömningar på elever i de aktuella klasserna för att se jämförelsen.</div>';
+  if(!anyData){
+    var hint=curMode==='helhets'?'helhetsbedömningar':curMode==='moments'?'momentbetyg':'terminsbetyg';
+    return ctrl+'<div style="padding:14px;background:var(--surface2);border-radius:8px;font-size:.82rem;color:var(--text-muted)">'
+      +'Inga '+hint+' hittades för valt urval. '
+      +(curMode==='helhets'?'Kontrollera att helhetsbedömningar är satta på elever i de valda klasserna.':
+        curMode.startsWith('final')?'Terminsbetyg sätts i Översikt-fliken.':'Kontrollera att momentbetyg är registrerade.')
+      +'</div>';
+  }
 
-  return renderStatInfo('areas')+'<div>'+ctrl+sections+'</div>';
+  var legend=order.map(function(k){
+    return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;margin-right:10px"><span style="width:10px;height:10px;border-radius:2px;background:'+GCOL[k]+';display:inline-block"></span>'+gradeLabel(k)+'</span>';
+  }).join('');
+
+  return ctrl+rows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-soft)">'+legend+'</div>';
 }
 
 
-function buildAreaStats(cls, sk, yr, areas){
-  if(!areas.length)return'';
-  const active=cls.students.filter(s=>!s.archived);
-  const GCOL={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626','E-':'#be185d',F:'#991b1b',K:'#7c3aed'};
-  const order=['A','B','C','D','E','E-','F','K'];
-
-  let html='<div class="area-stats-row no-print">';
-
-  for(let ai=0;ai<areas.length;ai++){
-    const area=areas[ai];
-
-    // Samla betyg per moment
-    const momentStats=area.moments.map((mname,mi)=>{
-      const isHelhets=mname.toLowerCase().includes('helhet');
-      const grades=active.map(s=>{
-        const key=gKey(s.id,sk,yr,ai,mi);
-        return effectiveGrade(cls,key,cls.grades[key]||'');
-      }).filter(Boolean);
-      return{mname,mi,isHelhets,grades};
-    }).filter(m=>m.grades.length);
-
-    if(!momentStats.length)continue;
-
-    // Bygg rader per moment
-    const momentRows=momentStats.map(({mname,isHelhets,grades})=>{
-      const cnt={};grades.forEach(g=>cnt[g]=(cnt[g]||0)+1);
-      const pills=order.filter(k=>cnt[k]).map(k=>
-        `<span style="display:inline-flex;align-items:center;gap:2px;font-size:.63rem;` +
-        `padding:1px 5px;border-radius:8px;background:${GCOL[k]}18;color:${GCOL[k]};` +
-        `border:1px solid ${GCOL[k]}55;font-weight:700">${gradeLabel(k)} ` +
-        `<span style="font-weight:400">${cnt[k]}</span></span>`
-      ).join('');
-      const nameStyle=isHelhets
-        ?'font-size:.7rem;font-weight:700;color:var(--text);min-width:90px'
-        :'font-size:.68rem;color:var(--text-muted);min-width:90px';
-      return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;` +
-        `${isHelhets?'border-top:1px solid var(--border-soft);margin-top:3px;padding-top:4px':''}">`+
-        `<span style="${nameStyle};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">` +
-        `${isHelhets?'⭐ ':''}${esc(mname)}</span>`+
-        `<div style="display:flex;gap:3px;flex-wrap:wrap">${pills}</div></div>`;
-    }).join('');
-
-    html+=`<div style="flex:1;min-width:160px;padding:8px 10px;background:var(--surface);` +
-      `border:1px solid var(--border-soft);border-radius:8px">`+
-      `<div style="font-size:.74rem;font-weight:700;color:var(--text);margin-bottom:5px;` +
-      `white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(area.name)}</div>`+
-      momentRows+`</div>`;
-  }
-  html+='</div>';
-  return html;
-}
-
-
-/* ================================================================
-   STAT INFO — förklaringsrutor per flik
-================================================================ */
-const STAT_INFO = {
-  'class':   {icon:'🎓', title:'Klassbild', text:'Sammanfattning av hela klassens betygsläge. Visar KPI-kort (elever, omprov, riskzon), betygsdistribution per ämne och år, samt andel ≥E. Växla mellan terminsbetyg och helhetsbedömningar med knapparna.'},
-  'risk':    {icon:'⚠',  title:'Riskzon',   text:'Elever som riskerar att inte nå E. Visar terminsbetyg under E, helhetsbedömningar F/E–, och elever med hög ogiltig frånvaro. Används som underlag för åtgärder.'},
-  'todo':    {icon:'📋', title:'Att göra',  text:'Konkreta åtgärder: elever som väntar på omprov, har F eller behöver komplettering. E– visas ej här men räknas i riskzon. Kryssa av hanterade ärenden.'},
-  'deep':    {icon:'🔬', title:'Fördjupning', text:'Jämför betygsfördelning och frånvaro uppdelat på kön (T/K) eller SvA. Välj ämne, årskurs och betygskälla. Snittbetyget beräknas som A=6, B=5 … F=0.'},
-  'compare': {icon:'⚖',  title:'Jämför klasser', text:'Ställ klasser mot varandra för ett visst ämne och årskurs. Välj "Momentbetyg" för att se alla registrerade betyg, eller terminsbetyg HT/VT om sådana finns.'},
-  'areas':   {icon:'📐', title:'Jämför AO', text:'Jämför helhetsbedömningar per arbetsområde mellan klasser. Kräver att klasserna har arbetsområden med samma namn och att helhetsbedömningar är satta.'},
-  'coverage':{icon:'📚', title:'Kursplan',  text:'Visar hur väl undervisningen täcker det centrala innehållet (LGR22). Koppla arbetsområden till kursplanens delar under respektive ämne.'},
-  'print':   {icon:'🖨', title:'Utskrift',  text:'Generera rapporter som kan skrivas ut eller sparas som PDF. Välj rapport, granska förhandsvisningen och klicka Skriv ut.'},
-};
-
-function renderStatInfo(tab){
-  const info=STAT_INFO[tab];
-  if(!info)return'';
-  return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;'
-    +'background:var(--accent-lt);border-radius:8px;margin-bottom:14px;border:1px solid var(--accent)22">'
-    +'<span style="font-size:1rem;flex-shrink:0">'+info.icon+'</span>'
-    +'<div>'
-    +'<div style="font-size:.78rem;font-weight:700;color:var(--accent);margin-bottom:2px">'+info.title+'</div>'
-    +'<div style="font-size:.75rem;color:var(--text-muted);line-height:1.5">'+info.text+'</div>'
-    +'</div></div>';
-}
-
-(async function boot(){
-  // ── Electron window focus recovery ─────────────────────────────────
-  // When OS gives focus back (after minimize/alt-tab), Electron sometimes
-  // leaves the renderer unable to receive input clicks. Sending window-focused
-  // from main.js triggers this handler which restores proper input focus.
-  if(window.electronAPI?.onCheckUpdate){
-    window.electronAPI.onCheckUpdate(()=>checkHotUpdate(true));
-  }
-  if(window.electronAPI?.onWindowFocused){
-    window.electronAPI.onWindowFocused(()=>{
-      const a=document.activeElement;
-      if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')){
-        a.blur();setTimeout(()=>a.focus(),50);
-      } else {
-        // Force a minimal focus cycle on the body to flush Electron's input state
-        document.body.setAttribute('tabindex','-1');
-        document.body.focus();
-        document.body.removeAttribute('tabindex');
-      }
-    });
-  }
-
-  await loadFromDisk();
-  if(!db.customGrades)db.customGrades=[];
-  if(!db.absenceLimit)db.absenceLimit=15;
-  if(!db.settings)db.settings={};
-  if(!db.changelog)db.changelog=[];
-  if(!db.curriculum)db.curriculum={};
-  if(!db.todoHandled)db.todoHandled={};
-  // Default omprov grades: F and K (not E-)
-  if(!Array.isArray(db.retakeGrades))db.retakeGrades=['F','K'];
-  // Default risk grades: F and E-
-  if(!Array.isArray(db.riskGrades))db.riskGrades=['F','E-'];
-  if(!db.curriculumLinks)db.curriculumLinks={};
-  if(!db.criteriaLinksArea)db.criteriaLinksArea={};
-  markSaved(); // start clean
-  renderSidebar();
-  if(db.lastClass&&getClass(db.lastClass))selectClass(db.lastClass);
-  else if(db.classes.length)selectClass(db.classes[0].id);
-  else renderSubjectTabs(); // empty state — still render (empty) tabs
-  // Schedule weekly auto-backup check
-  autoBackup();
-  setInterval(autoBackup,60*60*1000); // check every hour
-  checkUnreadReleaseNotes();
-  updateAdaptBtn();
-  updateRecomBtn();
-  updateCurrStatusBtn();
-  updateCurrTopbarBtn();
-  initTheme();
-  // Kolla efter uppdatering efter 3 sekunder
-  setTimeout(checkHotUpdate, 3000);
-  if(!db.criteriaResults){}; // init lazily per class
-  if(!db.criteriaLinksArea)db.criteriaLinksArea={};
-  if(!db.adaptations)db.adaptations={};
-})();
-</script>
-
-<!-- ═══════════════ INSTÄLLNINGAR MODAL ═══════════════ -->
-<div class="modal-overlay" id="modal-settings" onclick="if(event.target===this)closeModal('modal-settings')">
-  <div class="modal" style="width:560px" onclick="event.stopPropagation()">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h2 style="margin:0">⚙ Inställningar</h2>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settings')">✕</button>
-    </div>
-
-    <!-- Flikar -->
-    <div style="display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:18px">
-      <button class="stab active" id="stab-settings-utseende"  onclick="showSettingsTab('utseende')">🎨 Utseende</button>
-      <button class="stab"        id="stab-settings-betyg"     onclick="showSettingsTab('betyg')">📊 Betyg</button>
-      <button class="stab"        id="stab-settings-funktioner"onclick="showSettingsTab('funktioner')">🔧 Funktioner</button>
-      <button class="stab"        id="stab-settings-data"      onclick="showSettingsTab('data')">💾 Data</button>
-      <button class="stab"        id="stab-settings-om"        onclick="showSettingsTab('om')" style="position:relative">
-        🆕 Om
-        <span class="news-unread" id="news-unread-dot-modal"></span>
-      </button>
-    </div>
-
-    <div id="settings-tab-body"></div>
-
-    <div class="modal-footer" style="margin-top:16px">
-      <button class="btn btn-primary" onclick="closeModal('modal-settings')">Stäng</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- FÖRHANDSVISNING -->
-<div class="preview-overlay" id="preview-overlay" onclick="if(event.target===this)closePreview()">
-  <div class="preview-wrap" onclick="event.stopPropagation()">
-    <div class="preview-head">
-      <span class="preview-head-title" id="preview-title">Förhandsvisning</span>
-      <button class="btn btn-primary btn-sm" onclick="printCurrentPreview()">🖨 Skriv ut</button>
-      <button class="btn btn-ghost btn-sm" onclick="closePreview()">✕</button>
-    </div>
-    <div class="preview-content" id="preview-content"></div>
-  </div>
-</div>
-
-<!-- FLYTTA ELEV -->
-<div class="modal-overlay" id="modal-move-student" onclick="if(event.target===this)closeModal('modal-move-student')">
-  <div class="modal" style="width:420px" onclick="event.stopPropagation()">
-    <h2>↔ Flytta elev</h2>
-    <p class="text-sm text-muted mb-3">Eleven och all data (betyg, omprov, anteckningar, frånvaro) flyttas till vald klass.</p>
-    <div class="fg">
-      <label class="fg-label">Elev</label>
-      <div id="move-student-name" style="font-weight:600;padding:6px 0"></div>
-    </div>
-    <div class="fg" style="margin-top:10px">
-      <label class="fg-label">Flytta till klass</label>
-      <select id="move-target-class" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.85rem;background:var(--surface)">
-      </select>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-move-student')">Avbryt</button>
-      <button class="btn btn-primary" onclick="confirmMoveStudent()">Flytta →</button>
-    </div>
-  </div>
-</div>
-</body>
-</html>
