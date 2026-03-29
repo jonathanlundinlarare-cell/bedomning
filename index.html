@@ -1356,7 +1356,7 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
 
 
 <!-- PROGRESSION VIEW MODAL -->
-<div class="modal-overlay" id="modal-progression">
+<div class="modal-overlay" id="modal-progression" onclick="if(event.target===this)closeModal('modal-progression')">
   <div class="modal prog-modal" onclick="event.stopPropagation()" style="max-height:92vh;overflow-y:auto">
     <div class="prog-header">
       <div>
@@ -4207,7 +4207,7 @@ window.openStudentView=function(sid){
     const btn=document.createElement('button');
     btn.className='btn btn-outline btn-sm prog-btn';
     btn.textContent='📈 Progressionsvy';
-    btn.onclick=()=>{closeModal('modal-student-view');openStudentProgression(sid);};
+    btn.onclick=(e)=>{e.stopPropagation();closeModal('modal-student-view');setTimeout(()=>openStudentProgression(sid),50);};
     existing.insertBefore(btn,existing.firstChild);
   }
 };
@@ -4317,6 +4317,14 @@ function _buildSetupWithCurriculum(cls){
    RELEASE NOTES / VERSIONSHISTORIK
 ================================================================ */
 const RELEASES = [
+  {
+    version: 'v141',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed', icon:'🔧', text:'Progressionsvyn öppnas nu korrekt — click-event bubblade upp och stängde modalen direkt.' },
+    ]
+  },
   {
     version: 'v140',
     label: 'Senaste',
@@ -4670,7 +4678,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v140';
+const LATEST_VERSION = 'v141';
 
 function openReleaseNotes(){
   openSettings();
