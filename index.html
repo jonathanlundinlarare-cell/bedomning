@@ -1253,7 +1253,7 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
   <div class="modal" onclick="event.stopPropagation()">
     <h2>⚠ Frånvarogräns</h2>
     <p class="text-sm text-muted mb-2">Elever med ogiltig frånvaro över denna gräns markeras med en orange varning i Översikten och betygstabellerna.</p>
-    <div class="fg"><label>Gräns – ogiltig frånvaro (timmar per termin)</label>
+    <div class="fg"><label>Gräns – ogiltig frånvaro (% per termin)</label>
       <input type="number" id="abs-limit" min="0" max="200" placeholder="t.ex. 10"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-absence-settings')">Avbryt</button>
@@ -1292,6 +1292,7 @@ tr.archived-student-row td{opacity:.4;font-style:italic}
         <div class="sv-meta" id="sv-meta"></div>
       </div>
       <div class="flex gap-2">
+        <button class="btn btn-outline btn-sm no-print" id="sv-prog-btn" onclick="openStudentProgressionFromView()">📈 Progressionsvy</button>
         <button class="btn btn-outline btn-sm no-print" onclick="printStudentView()">🖨 Skriv ut / PDF</button>
         <button class="btn btn-outline btn-sm no-print" onclick="closeModal('modal-student-view')">Stäng</button>
       </div>
@@ -2113,7 +2114,7 @@ function renderGradeTab(cls,sk){
   const retakeSummary='';
   // Bygg absWarnStudents från eleverna i klassen
   const absWarnStudents=cls.students.filter(s=>!s.archived&&absenceWarn(cls,s.id,yr));
-  const absWarnBar=absWarnStudents.length?`<div class="absence-warn-bar">⚠ <strong>Frånvarovarning (≥${db.absenceLimit||15}h ogiltig):</strong> ${absWarnStudents.map(s=>esc(s.name)).join(', ')}</div>`:'';
+  const absWarnBar=absWarnStudents.length?`<div class="absence-warn-bar">⚠ <strong>Frånvarovarning (≥${db.absenceLimit||15}% ogiltig):</strong> ${absWarnStudents.map(s=>esc(s.name)).join(', ')}</div>`:'';
 
   return`
   <div class="card">
@@ -2326,6 +2327,9 @@ function openStudentView(sid){
   const s=c.students.find(x=>x.id===sid);if(!s)return;
   document.getElementById('sv-name').textContent=s.name;
   document.getElementById('sv-meta').textContent=`${c.name}${c.year?' · '+c.year:''} · Genererad ${todayStr()}`;
+  // Spara aktuell sid på knappen för progressionsvyn
+  const _progBtn=document.getElementById('sv-prog-btn');
+  if(_progBtn)_progBtn.dataset.sid=sid;
 
   let html='';
   // ── ÅK 6 block in student view ──
@@ -2411,8 +2415,8 @@ function openStudentView(sid){
       </div>
       ${subjectBlocks||`<p class="text-xs text-muted">Inga betygsatta moment för ÅK ${yr}.</p>`}
       <div class="sv-abs-row">
-        <span>HT: ${htGiltig}h giltig, <span class="${htOgiltig>=(db.absenceLimit||15)?'sv-abs-warn':''}">${htOgiltig}h ogiltig</span></span>
-        <span>VT: ${vtGiltig}h giltig, <span class="${vtOgiltig>=(db.absenceLimit||15)?'sv-abs-warn':''}">${vtOgiltig}h ogiltig</span></span>
+        <span>HT: ${htGiltig}% giltig, <span class="${htOgiltig>=(db.absenceLimit||15)?'sv-abs-warn':''}">${htOgiltig}% ogiltig</span></span>
+        <span>VT: ${vtGiltig}% giltig, <span class="${vtOgiltig>=(db.absenceLimit||15)?'sv-abs-warn':''}">${vtOgiltig}% ogiltig</span></span>
         ${absWarn?`<span class="sv-abs-warn">⚠ Frånvarovarning</span>`:''}
       </div>
       ${genNote?`<div style="margin-top:6px;font-size:.76rem;color:var(--text-muted);font-style:italic">📝 ${esc(genNote)}</div>`:''}
@@ -2646,7 +2650,7 @@ function renderOversikt(cls){
     let subHdr=`<th class="th-name" rowspan="2" style="cursor:default">Elev</th>`;
     let termHdr='';
     for(const sk of skList){const sd=subjectDef(sk,cls);const terms=activeTerms(cls,sk,yr);subHdr+=`<th class="${yc.area}" colspan="${terms.length}">${sd.icon} ${sd.name}</th>`;terms.forEach(t=>termHdr+=`<th class="${t==='HT'?'th-ht':'th-vt'}">${t}</th>`);}
-    subHdr+=`<th class="${yc.area}" colspan="4">Frånvaro (tim)</th>`;
+    subHdr+=`<th class="${yc.area}" colspan="4">Frånvaro (%)</th>`;
     termHdr+=`<th class="th-ht">HT giltig</th><th class="th-ht">HT ogiltig</th><th class="th-vt">VT giltig</th><th class="th-vt">VT ogiltig</th>`;
     subHdr+=`<th class="${yc.area}" rowspan="2">Anteckning</th>`;
 
@@ -2661,8 +2665,8 @@ function renderOversikt(cls){
       const ab=(cls.absence[s.id]||{})[yr]||{};
       for(const term of TERMS){
         const t=(ab[term]||{});const og=t.ogiltig||0;const limit=db.absenceLimit||15;
-        cells+=`<td><input class="absence-inp" type="number" min="0" value="${t.giltig||''}" placeholder="0" onchange="setAbsence('${s.id}',${yr},'${term}','giltig',this.value)"></td>`;
-        cells+=`<td><input class="absence-inp" type="number" min="0" value="${og||''}" placeholder="0" style="${og>=limit?'border-color:var(--orange);background:#fff8f0':''}" onchange="setAbsence('${s.id}',${yr},'${term}','ogiltig',this.value)"></td>`;
+        cells+=`<td><input class="absence-inp" type="number" min="0" max="100" value="${t.giltig||''}" placeholder="0" onchange="setAbsence('${s.id}',${yr},'${term}','giltig',this.value)"></td>`;
+        cells+=`<td><input class="absence-inp" type="number" min="0" max="100" value="${og||''}" placeholder="0" style="${og>=limit?'border-color:var(--orange);background:#fff8f0':''}" onchange="setAbsence('${s.id}',${yr},'${term}','ogiltig',this.value)"></td>`;
       }
       const note=cls.notes['gen_'+s.id+'_'+yr]||'';
       cells+=`<td><div style="display:flex;flex-direction:column;gap:2px">
@@ -2728,7 +2732,7 @@ function printOversiktPDF(yr){
   </style>
   </head><body>
   <h2>${esc(c.name)}${c.year?' – '+esc(c.year):''} &nbsp;·&nbsp; Betygsöversikt – Årskurs ${yr}</h2>
-  <h3>Skrivet ut ${todayStr()} · Frånvarogräns ogiltig: ≥${db.absenceLimit||15}h (markeras rött)</h3>
+  <h3>Skrivet ut ${todayStr()} · Frånvarogräns ogiltig: ≥${db.absenceLimit||15}% (markeras rött)</h3>
   <table><thead><tr>${hdr}</tr><tr>${termRow}</tr></thead><tbody>${rows}</tbody></table>
   <script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`;
   openPreview('Förhandsvisning',_epHtml,false);
@@ -3220,7 +3224,7 @@ function printAllStudentReports(){
       return`<tr><td style="color:#555;width:40px">ÅK${yr}</td>${TERMS.map(t=>{
         const d=ab[t]||{};
         const og=d.ogiltig||0;const lim=db.absenceLimit||15;
-        return`<td>${t}: ${d.giltig||0}h giltig / <span style="${og>=lim?'color:#b71c1c;font-weight:700':''}">${og}h ogiltig</span></td>`;
+        return`<td>${t}: ${d.giltig||0}% giltig / <span style="${og>=lim?'color:#b71c1c;font-weight:700':''}">${og}% ogiltig</span></td>`;
       }).join('')}</tr>`;
     }).filter(Boolean).join('');
     if(absRows)body+=`<h3 style="background:#f5f5f5;padding:2px 6px;margin:8px 0 4px">Frånvaro</h3>
@@ -3305,7 +3309,7 @@ function openAbsenceSettings(){
 }
 function saveAbsenceSettings(){
   db.absenceLimit=parseInt(document.getElementById('abs-limit').value)||15;
-  closeModal('modal-absence-settings');onChange();renderSubject();showToast(`Frånvarogräns satt till ${db.absenceLimit}h`);
+  closeModal('modal-absence-settings');onChange();renderSubject();showToast(`Frånvarogräns satt till ${db.absenceLimit}%`);
 }
 
 /* ================================================================
@@ -4197,20 +4201,13 @@ window.removeArea=function(sk,yr,ai){
 /* ================================================================
    PATCH openStudentView to show progression tab
 ================================================================ */
-const _origOpenStudentView=window.openStudentView;
-window.openStudentView=function(sid){
-  // Add progression button to student view modal footer
-  _origOpenStudentView(sid);
-  // Inject a "Progressionsvy" button
-  const existing=document.querySelector('#modal-student-view .sv-header .flex');
-  if(existing&&!existing.querySelector('.prog-btn')){
-    const btn=document.createElement('button');
-    btn.className='btn btn-outline btn-sm prog-btn';
-    btn.textContent='📈 Progressionsvy';
-    btn.onclick=(e)=>{e.stopPropagation();closeModal('modal-student-view');setTimeout(()=>openStudentProgression(sid),50);};
-    existing.insertBefore(btn,existing.firstChild);
-  }
-};
+function openStudentProgressionFromView(){
+  const btn=document.getElementById('sv-prog-btn');
+  const sid=btn?.dataset.sid;
+  if(!sid)return;
+  closeModal('modal-student-view');
+  setTimeout(()=>openStudentProgression(sid),80);
+}
 
 /* ================================================================
    PATCH renderSetup to use buildAreaCard
@@ -4317,6 +4314,23 @@ function _buildSetupWithCurriculum(cls){
    RELEASE NOTES / VERSIONSHISTORIK
 ================================================================ */
 const RELEASES = [
+  {
+    version: 'v143',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'improved', icon:'📊', text:'Frånvaro anges nu i procent (%) istället för timmar — gäller översikten, elevvyn, inställningar och alla rapporter.' },
+    ]
+  },
+  {
+    version: 'v142',
+    label: 'Senaste',
+    date: '2026-03',
+    items: [
+      { type:'fixed',    icon:'🔧', text:'Progressionsvyn fungerar nu korrekt — knappen ligger direkt i elevvyns header.' },
+      { type:'improved', icon:'📊', text:'Frånvarostatistik i Fördjupning visar nu även andel elever över frånvarogränsen i procent.' },
+    ]
+  },
   {
     version: 'v141',
     label: 'Senaste',
@@ -4678,7 +4692,7 @@ const RELEASES = [
   },
 ];
 // Latest version key
-const LATEST_VERSION = 'v141';
+const LATEST_VERSION = 'v143';
 
 function openReleaseNotes(){
   openSettings();
@@ -7072,7 +7086,7 @@ function renderSettingsBetyg(){
       <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
         <input type="number" id="absence-limit-inp" value="${db.absenceLimit||15}" min="1" max="200"
           style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.85rem">
-        <span class="text-sm text-muted">timmar — elever över gränsen markeras i riskzon</span>
+        <span class="text-sm text-muted">% ogiltig frånvaro — elever över gränsen markeras i riskzon</span>
       </div>
       <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="saveAbsenceLimitInline()">Spara</button>
     </div>
@@ -7826,7 +7840,27 @@ function renderStatDeep(){
   // Frånvaroanalys
   var absHtml='';
   if(curGroup!=='none'){
+    var limit=db.absenceLimit||15;
     var absCards=groupStats.map(function(gr){
+      var totO=0,totG=0,nAbove=0;
+      gr.students.forEach(function(s){
+        var sO=0;
+        YEARS.forEach(function(yr){TERMS.forEach(function(t){
+          var ab=(c.absence[s.id]||{})[yr]?.[t]||{};
+          totO+=(ab.ogiltig||0);totG+=(ab.giltig||0);sO+=(ab.ogiltig||0);
+        });});
+        if(sO>=limit)nAbove++;
+      });
+      var n=gr.students.length||1;
+      var pctAbove=Math.round(nAbove/n*100);
+      return '<div style="background:var(--surface2);border-radius:8px;padding:8px 14px;min-width:140px">'
+        +'<div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px">'+gr.label+'</div>'
+        +'<div style="font-size:.78rem">Ogiltig: <strong>'+Math.round(totO/n*10)/10+'%</strong>/elev</div>'
+        +'<div style="font-size:.78rem">Giltig: <strong>'+Math.round(totG/n*10)/10+'%</strong>/elev</div>'
+        +'<div style="font-size:.78rem;margin-top:2px;color:'+(pctAbove>20?'#dc2626':'var(--text-muted)') +'">'
+        +'Över '+limit+'h: <strong>'+pctAbove+'%</strong> ('+nAbove+' av '+n+')</div>'
+        +'</div>';
+    });var absCards=groupStats.map(function(gr){
       var totO=0,totG=0;
       gr.students.forEach(function(s){
         YEARS.forEach(function(yr){TERMS.forEach(function(t){
@@ -7837,8 +7871,8 @@ function renderStatDeep(){
       var n=gr.students.length||1;
       return '<div style="background:var(--surface2);border-radius:8px;padding:8px 14px;min-width:140px">'
         +'<div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px">'+gr.label+'</div>'
-        +'<div style="font-size:.78rem">Ogiltig: <strong>'+Math.round(totO/n*10)/10+'h</strong>/elev</div>'
-        +'<div style="font-size:.78rem">Giltig: <strong>'+Math.round(totG/n*10)/10+'h</strong>/elev</div>'
+        +'<div style="font-size:.78rem">Ogiltig: <strong>'+Math.round(totO/n*10)/10+'%</strong>/elev</div>'
+        +'<div style="font-size:.78rem">Giltig: <strong>'+Math.round(totG/n*10)/10+'%</strong>/elev</div>'
         +'</div>';
     }).join('');
     absHtml='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft)">'
